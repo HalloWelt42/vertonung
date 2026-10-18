@@ -126,7 +126,8 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
         await teile.verzeichnis.eintragen(gelaufen, neu_knoten.id, haupt_id, haupt.pfad,
                                           await teile.stimmen_namen([r.stimme for r in gelaufen.rollen]), anfrage_id)
         return {"ergebnis": str(erg.id), "pfad": erg.pfad, "dauer_s": dauer_s, "abschnitte": len(gelaufen.abschnitte),
-                "ersatz": sum(1 for a in gelaufen.abschnitte if a.bericht and a.bericht.ersatz)}
+                "ersatz": sum(1 for a in gelaufen.abschnitte if a.bericht and a.bericht.ersatz),
+                "sprache": gelaufen.sprache, "ausgangssprache": gelaufen.ausgangssprache}
     finally:
         shutil.rmtree(ordner, ignore_errors=True)
 

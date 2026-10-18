@@ -138,6 +138,7 @@ async def test_ganzer_weg(tmp_path: Path):
                                        "segmente": json.dumps(segmente), "stimme": json.dumps({"art": "katalog", "name": "aiden"})})
                 assert r.status_code == 201, r.text
                 dienst = (await fertig(c, h, r.json()["id"]))["ergebnis"]
+                assert (dienst["sprache"], dienst["ausgangssprache"]) == ("de", "en")
                 dp = (await c.get(f"/api/v1/plaene/{dienst['plan_id']}", headers=h)).json()
                 angelegt.append(dp["haupt_id"])
                 angelegt.append((await kw.pfad(f"{zweig}/Dienst")).id)
