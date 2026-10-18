@@ -143,9 +143,20 @@
   <div class="plan-liste">
     {#each sichtbar as a (a.nr)}
       {@const s = staende[a.nr]}
-      <div class="plan-zeile" class:ohne-rolle={plan?.art === "vorlesen"} class:geaendert={s?.stand === "geaendert"} class:jetzt={spielt === a.nr}>
-        <span class="nr">{a.nr}</span>
-        {#if plan?.art !== "vorlesen"}<span class="sprecher"><span class="punkt" style="background:{farbe(a.rolle)}"></span>{rolleName(a)}</span>{/if}
+      <div class="plan-zeile" class:geaendert={s?.stand === "geaendert"} class:jetzt={spielt === a.nr}>
+        <div class="zeilen-kopf">
+          <div class="angaben">
+          <span class="nr">{a.nr}</span>
+          {#if plan?.art !== "vorlesen"}<span class="sprecher"><span class="punkt" style="background:{farbe(a.rolle)}"></span>{rolleName(a)}</span>{/if}
+          <span class="dauer">{zeitText(a)}</span>
+          <span class="stand-pille {s?.stand === 'gesprochen' ? 'fertig' : s?.stand === 'geaendert' ? 'warn' : 'offen'}">{s?.stand === "gesprochen" ? "gesprochen" : s?.stand === "geaendert" ? "geändert" : "offen"}</span>
+          {#if s?.uebersetzen}<span class="stand-pille offen">wird übersetzt</span>{/if}
+          {#each hinweisPillen(a) as h (h.text)}<span class="stand-pille {h.klasse}">{h.text}</span>{/each}
+          </div>
+          <button class="rund" title={spielt === a.nr ? "Anhalten" : s?.stand === "geaendert" ? "Alte Fassung anhören" : "Anhören"}
+                  disabled={s?.stand === "offen"} onclick={() => (spielt = spielt === a.nr ? null : a.nr)}>
+            <i class="fa-solid {spielt === a.nr ? 'fa-pause' : 'fa-play'}"></i></button>
+        </div>
         <div class="satz">
           {#if bearbeitet === a.nr}
             <!-- svelte-ignore a11y_autofocus -->
@@ -154,16 +165,8 @@
           {:else}
             <span role="button" tabindex="0" title="Klicken zum Ändern" onclick={() => textBeginnen(a)} onkeydown={(k) => k.key === "Enter" && textBeginnen(a)}>{s?.uebersetzen ? "" : a.text}</span>
           {/if}
-          {#if a.original}<div class="original" lang={plan?.ausgangssprache ?? undefined}>{a.original}</div>{/if}
-          <div class="unter"><span class="dauer">{zeitText(a)}</span>
-            <span class="stand-pille {s?.stand === 'gesprochen' ? 'fertig' : s?.stand === 'geaendert' ? 'warn' : 'offen'}">{s?.stand === "gesprochen" ? "gesprochen" : s?.stand === "geaendert" ? "geändert" : "offen"}</span>
-            {#if s?.uebersetzen}<span class="stand-pille offen">wird übersetzt</span>{/if}
-            {#each hinweisPillen(a) as h (h.text)}<span class="stand-pille {h.klasse}">{h.text}</span>{/each}
-          </div>
         </div>
-        <button class="rund" title={spielt === a.nr ? "Anhalten" : s?.stand === "geaendert" ? "Alte Fassung anhören" : "Anhören"}
-                disabled={s?.stand === "offen"} onclick={() => (spielt = spielt === a.nr ? null : a.nr)}>
-          <i class="fa-solid {spielt === a.nr ? 'fa-pause' : 'fa-play'}"></i></button>
+        {#if a.original}<div class="original" lang={plan?.ausgangssprache ?? undefined}>{a.original}</div>{/if}
       </div>
     {:else}
       <p class="leer">{nurHinweise ? "Kein Abschnitt mit Hinweis." : "Keine Abschnitte."}</p>

@@ -2,16 +2,16 @@
    Farben und Größen aus der Schale; Rollenfarben wie die Sprecherfarben (--s1 bis --s6). Einzige Quelle: die
    Oberfläche bindet sie ein, die Entwürfe in mockups/ ebenso. */
 
-/* ----- Plan: Abschnitte (Zeilen des Plans; .abschnitt gehört der Schale) ----- */
+/* ----- Plan: Abschnitte als Zeilen (.abschnitt und .kopf gehören der Schale). Oben Nummer, Sprecher, Zeit, Stand und Knopf, darunter
+   der Text in voller Breite; so bleibt er auch am Telefon lesbar. ----- */
 .plan-liste { max-width: 1020px; }
-.plan-zeile { display: grid; grid-template-columns: 34px 150px minmax(0, 1fr) 36px; gap: 12px; align-items: start;
-              padding: 8px 12px; border-radius: var(--r2); }
-.plan-zeile.ohne-rolle { grid-template-columns: 34px minmax(0, 1fr) 36px; }
+.plan-zeile { padding: 8px 12px 10px; border-radius: var(--r2); }
 .plan-zeile + .plan-zeile { margin-top: 2px; }
-.plan-zeile .nr { font-family: ui-monospace, monospace; font-size: var(--marke); color: var(--text-3); text-align: right; padding-top: 5px; }
-.plan-zeile .satz { line-height: 1.6; min-width: 0; padding-top: 2px; }
-.plan-zeile .original { font-size: var(--klein); color: var(--text-3); line-height: 1.5; margin-top: 2px; }
-.plan-zeile .unter { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-top: 3px; }
+.zeilen-kopf { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: start; }
+.zeilen-kopf .angaben { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 32px; }
+.plan-zeile .nr { font-family: ui-monospace, monospace; font-size: var(--marke); color: var(--text-3); min-width: 24px; }
+.plan-zeile .satz { line-height: 1.6; margin-top: 2px; overflow-wrap: anywhere; }
+.plan-zeile .original { font-size: var(--klein); color: var(--text-3); line-height: 1.5; margin-top: 2px; overflow-wrap: anywhere; }
 .plan-zeile .dauer { font-family: ui-monospace, monospace; font-size: var(--marke); color: var(--text-3); white-space: nowrap; }
 .plan-zeile.jetzt { background: var(--akzent-weich); }
 .plan-zeile.geaendert { background: var(--flaeche); box-shadow: 0 0 0 1px var(--warn); }

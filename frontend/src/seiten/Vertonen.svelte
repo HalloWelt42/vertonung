@@ -121,13 +121,17 @@
   <div class="t-gruppe">Vertonungen</div>
   <div class="t-liste">
     {#each (liste?.eintraege ?? []).filter((e) => !laufend[e.id]) as e (e.id)}
-      <button class="t-zeile" onclick={() => (e.ergebnis_id && !e.offen ? (spielt = spielt === e.id ? null : e.id) : oeffnen(e))}>
+      <!-- Tippen öffnet die Vertonung; der runde Knopf spielt das Ergebnis, ohne sie zu öffnen -->
+      <div class="t-zeile" role="button" tabindex="0" onclick={() => oeffnen(e)} onkeydown={(k) => k.key === "Enter" && oeffnen(e)}>
         <i class="fa-solid {ARTEN[e.art].symbol}"></i>
         <span class="t-text"><span class="t-name">{e.name}</span><span class="t-meta">{meta(e)}</span></span>
-        {#if e.offen && e.ergebnis_id}<span class="stand-pille warn">geändert</span>
-        {:else if e.ergebnis_id}<i class="fa-solid {spielt === e.id ? 'fa-pause' : 'fa-play'}" style="color:var(--akzent)"></i>
+        {#if e.offen && e.ergebnis_id}<span class="stand-pille warn">geändert</span>{/if}
+        {#if e.ergebnis_id}
+          <button class="rund" title={spielt === e.id ? "Anhalten" : "Anhören"}
+                  onclick={(k) => { k.stopPropagation(); spielt = spielt === e.id ? null : e.id; }}>
+            <i class="fa-solid {spielt === e.id ? 'fa-pause' : 'fa-play'}"></i></button>
         {:else}<i class="fa-solid fa-chevron-right" style="color:var(--text-3)"></i>{/if}
-      </button>
+      </div>
     {:else}
       <div class="leer">{liste ? "Noch keine Vertonung. Unter Vorlesen geht es los." : "Lädt ..."}</div>
     {/each}

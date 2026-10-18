@@ -4,6 +4,8 @@
     { "name": "neu-vorlesen", "pfad": "/vertonen/neu/vorlesen" },
     { "name": "neu-dialog", "pfad": "/vertonen/neu/dialog" },
     { "name": "neu-zeitgenau", "pfad": "/vertonen/neu/zeitgenau/kellerwolke" },
+    { "name": "plan-zeitgenau", "abfrage": "/api/v1/plaene?art=zeitgenau&anzahl=1", "pfad": "/vertonen/{eintraege.0.id}" },
+    { "name": "plan-vorlesen", "abfrage": "/api/v1/plaene?art=vorlesen&anzahl=1", "pfad": "/vertonen/{eintraege.0.id}" },
     { "name": "stimmen", "pfad": "/stimmen" },
     { "name": "einstellungen", "pfad": "/einstellungen" },
     { "name": "einstellungen-zeitgenau", "pfad": "/einstellungen/zeitgenau" }
