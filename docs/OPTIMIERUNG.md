@@ -23,7 +23,7 @@ Sprachen werden deutsch vertont.
 |---|---|---|---|---|
 | K1 | PostgreSQL in 100 Seconds (TubeVault n2Fluyr3lbc) | 2:36 | en | sehr schnell, Fachwörter, Zahlen, kein Untertitel |
 | K2 | (folgt) eine Anleitung mit Uhrzeiten, Preisen, Einheiten | 2 bis 5 min | en | Sprechfassung |
-| K3 | (folgt) ein Interview mit zwei Sprechern | 2 bis 5 min | en | Strecke 3 |
+| K3 | National Geographic, Fort Lauderdale: Erzähler, Beamte, Fluggast | 3:35 | en | Strecke 3 |
 | L1 | (folgt, erst nach K1 bis K3) | 15 bis 20 min | en | Dauer, Speicher, Zeitlage über lange Strecken |
 | T23 | echter TubeVault-Wunsch: Interview "Russia faces logistical winter nightmare" (Nachvertoner, Zeit-Stimme) | 15:23 | en | erster langer Lauf im Betrieb |
 
@@ -120,3 +120,22 @@ teilen (Wortzeiten) und die Abdrücke der geteilten Segmente neu bestimmen. Nebe
 ergaben einen einzigen Abschnitt (Vertonung fasst jetzt höchstens 25 s zusammen); übersteuerte Quellen brachen das
 Gewinnen ab (Referenz wird jetzt leiser); die Ausspracheprüfung wartete je Abschnitt auf das eine Hör-Fach der
 Leitstelle (sie hört jetzt das fertige Ergebnis in Stücken bis 5 Minuten).
+
+Runde 2 (18.10.2026, Transkription 0.12): wieder nur ein Sprecher (K3b: 7:22, Aussprache 4,6 %). Ursache gemessen: die
+Transkription wandelte auf dem Pi; dessen Ton wich um -45 dB vom Mac ab, und davon kippte die Gruppierung der
+Sprechertrennung (zweiter Sprecher 7 statt 31 s, 66 statt 50 Wechsel). Abhilfe: alle Tonarbeit im Tondienst auf dem
+Mac (Nutzer: "pi ist nur datenlieferant"; Appkern 0.29, Transkription 0.13, Vertonung 0.12).
+
+Runde 3 (K3c, 18.10.2026, alles über den Tondienst):
+
+| Messgröße | Wert |
+|---|---|
+| Sprecher | 2 (Trennung auf Mac-gewandeltem Ton: zweiter Sprecher 33,7 s); 28 statt 16 Abschnitte |
+| Stimmen | Sprecher 1 gewonnen (beste Stelle im Video), Sprecher 2 am Abdruck wiedererkannt |
+| Länge | 215,06 s bei 215,1 s Quelle; Versatz höchstens 0,1 s; Stauchung im Mittel 1,17, höchstens 1,50 |
+| Aussprache | im Mittel 18,3 % (viele Abschnitte mit 1 bis 4 Wörtern: ein falsch gehörtes Wort zählt 25 % und mehr) |
+| Dauer | 29:30, davon 17 Minuten ein durchgegangener Klon (das Modell erzeugte bis zur Vorgabe von 4096 Token, etwa 340 s Ton, verworfen als Echo); Klangwerk 0.3.1 begrenzt die Länge nach dem Text |
+
+Offen: die Trennung bleibt empfindlich (kleine Abweichungen im Ton kippen die Gruppierung); Messgröße Aussprache nach
+Wörtern gewichten statt je Abschnitt; kurze Einwürfe (unter 1,5 s) eher mit dem Nachbarabschnitt desselben Sprechers
+zusammenfassen oder bei hoher Stauchung schieben.
