@@ -83,18 +83,22 @@ async def haupt(args) -> None:
     try:
         ergebnisse = []
         for modell in args.modelle.split(","):
-            e = await messen(plan, ls, modell.strip(), args.tempo, einst)
-            originale = {a.nr: a.original or "" for a in plan.abschnitte}
-            g = await gutachten(ls, args.gutachter, [(nr, originale[nr], t) for nr, t in e["texte"].items()])
-            e["vollstaendig"] = round(sum(1 for x in g.values() if x.get("vollstaendig")) / max(1, len(e["texte"])), 3)
-            e["maengel"] = {nr: {"fehlt": x.get("fehlt"), "hinzu": x.get("hinzu")} for nr, x in g.items()
-                            if not x.get("vollstaendig")}
+            try:
+                e = await messen(plan, ls, modell.strip(), args.tempo, einst)
+                originale = {a.nr: a.original or "" for a in plan.abschnitte}
+                g = await gutachten(ls, args.gutachter, [(nr, originale[nr], t) for nr, t in e["texte"].items()])
+                e["vollstaendig"] = round(sum(1 for x in g.values() if x.get("vollstaendig")) / max(1, len(e["texte"])), 3)
+                e["maengel"] = {nr: {"fehlt": x.get("fehlt"), "hinzu": x.get("hinzu")} for nr, x in g.items()
+                                if not x.get("vollstaendig")}
+                print(f"{e['modell']:28} {e['dauer_s']:7.1f} s  über Grenze {len(e['ueber_grenze'])}/{e['abschnitte']}  "
+                      f"knapper {e['knapper']}  Zeichen/Grenze {e['zeichen_zu_grenze']:.2f}  vollständig {e['vollstaendig']:.0%}",
+                      flush=True)
+            except Exception as f:  # noqa: BLE001 - ein Modell, das scheitert, ist selbst ein Messergebnis
+                e = {"modell": modell.strip(), "fehler": f"{type(f).__name__}: {f}"}
+                print(f"{e['modell']:28} gescheitert: {e['fehler'][:150]}", flush=True)
             ergebnisse.append(e)
-            print(f"{e['modell']:28} {e['dauer_s']:7.1f} s  über Grenze {len(e['ueber_grenze'])}/{e['abschnitte']}  "
-                  f"knapper {e['knapper']}  Zeichen/Grenze {e['zeichen_zu_grenze']:.2f}  vollständig {e['vollstaendig']:.0%}",
-                  flush=True)
-        if args.aus:
-            Path(args.aus).write_text(json.dumps(ergebnisse, ensure_ascii=False, indent=1))
+            if args.aus:
+                Path(args.aus).write_text(json.dumps(ergebnisse, ensure_ascii=False, indent=1))
     finally:
         await ls.schliessen()
 
