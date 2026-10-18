@@ -141,6 +141,7 @@ async def test_ganzer_weg(tmp_path: Path):
                 dienst_auftrag = r.json()["id"]
                 dienst = (await fertig(c, h, dienst_auftrag))["ergebnis"]
                 assert (dienst["sprache"], dienst["ausgangssprache"]) == ("de", "en")
+                assert schein.gehoert >= 2                                    # jeder neu gesprochene Abschnitt zurückgehört
                 dp = (await c.get(f"/api/v1/plaene/{dienst['plan_id']}", headers=h)).json()
                 angelegt.append(dp["haupt_id"])
                 angelegt.append((await kw.pfad(f"{zweig}/Dienst")).id)

@@ -111,14 +111,26 @@
     return a.dauer_s != null ? `${a.dauer_s.toFixed(1).replace(".", ",")} s` : "";
   }
 
-  function hinweisPillen(a: Abschnitt): { klasse: string; text: string }[] {
+  const AUSSPRACHE_HINWEIS = 0.15;     // wie im Server (modell/plan.py)
+  const prozent = (x: number) => `${Math.round(x * 100)} %`;
+
+  /** Zusammenfassung der Ausspracheprüfung eines Plans; null, wenn kein Abschnitt geprüft ist. */
+  function aussprache(p: Plan): { auffaellig: number; mittel: number } | null {
+    const quoten = p.abschnitte.map((a) => a.bericht?.aussprache).filter((q): q is number => q != null);
+    if (!quoten.length) return null;
+    return { auffaellig: quoten.filter((q) => q > AUSSPRACHE_HINWEIS).length, mittel: quoten.reduce((n, q) => n + q, 0) / quoten.length };
+  }
+
+  function hinweisPillen(a: Abschnitt): { klasse: string; text: string; titel?: string }[] {
     const b = a.bericht;
     if (!b) return [];
-    const aus: { klasse: string; text: string }[] = [];
+    const aus: { klasse: string; text: string; titel?: string }[] = [];
     if (b.weg === "luecke") aus.push({ klasse: "offen", text: "Lücke genutzt" });
     if (b.stauchung > 1.0001) aus.push({ klasse: "laeuft", text: `gestaucht ${b.stauchung.toFixed(2).replace(".", ",")}` });
     if (b.versatz_s > 0.01) aus.push({ klasse: "warn", text: `geschoben +${b.versatz_s.toFixed(1).replace(".", ",")} s` });
     if (b.ersatz) aus.push({ klasse: "warn", text: "Ersatzstimme" });
+    if ((b.aussprache ?? 0) > AUSSPRACHE_HINWEIS)
+      aus.push({ klasse: "warn", text: `Aussprache ${prozent(b.aussprache ?? 0)}`, titel: b.abweichungen.join("\n") });
     if (b.versuche > 1 && plan?.art !== "zeitgenau") aus.push({ klasse: "offen", text: `${b.versuche}. Versuch` });
     return aus;
   }
@@ -155,7 +167,7 @@
           <span class="dauer">{zeitText(a)}</span>
           <span class="stand-pille {s?.stand === 'gesprochen' ? 'fertig' : s?.stand === 'geaendert' ? 'warn' : 'offen'}">{s?.stand === "gesprochen" ? "gesprochen" : s?.stand === "geaendert" ? "geändert" : "offen"}</span>
           {#if s?.uebersetzen}<span class="stand-pille offen">wird übersetzt</span>{/if}
-          {#each hinweisPillen(a) as h (h.text)}<span class="stand-pille {h.klasse}">{h.text}</span>{/each}
+          {#each hinweisPillen(a) as h (h.text)}<span class="stand-pille {h.klasse}" title={h.titel}>{h.text}</span>{/each}
           </div>
           <button class="rund" title={spielt === a.nr ? "Anhalten" : s?.stand === "geaendert" ? "Alte Fassung anhören" : "Anhören"}
                   disabled={s?.stand === "offen"} onclick={() => einzelton.umschalten(`abschnitt:${id}:${a.nr}`, api.abschnittAdresse(id, a.nr, s?.stand))}>
@@ -201,6 +213,11 @@
       {/if}
       <div><i class="fa-solid {p.abschnitte.some((a) => a.bericht?.ersatz) ? 'fa-triangle-exclamation' : 'fa-check'}" style="color:var({p.abschnitte.some((a) => a.bericht?.ersatz) ? '--warn' : '--gut'})"></i>
         <span>{p.abschnitte.filter((a) => a.bericht?.ersatz).length || "keine"} mit Ersatzstimme</span></div>
+      {#if aussprache(p)}
+        {@const x = aussprache(p)!}
+        <div><i class="fa-solid fa-spell-check" style="color:var({x.auffaellig ? '--warn' : '--gut'})"></i>
+          <span>Aussprache: {x.auffaellig || "keine"} auffällig, im Mittel {prozent(x.mittel)} Abweichung</span></div>
+      {/if}
     </div>
   </div>
   <div class="gruppe">

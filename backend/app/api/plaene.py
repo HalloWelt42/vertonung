@@ -20,7 +20,6 @@ from ..arten import VertonenEingabe
 from ..modell.plan import Plan, Quelle, Stand, StimmWahl, Ziel
 from ..teile import Teile
 from ..verzeichnis import Eintrag, Seite
-from ..werk.zeitlage import mit_hinweis
 
 UNTERTITEL = (".srt", ".vtt")
 
@@ -65,7 +64,7 @@ class VerzeichnisAntwort(Seite):
 
 def _antwort(plan: Plan, knoten: Knoten, haupt: Knoten) -> PlanAntwort:
     staende = [AbschnittStand(nr=a.nr, stand=plan.stand(a), uebersetzen=a.uebersetzung_noetig(plan.sprache),
-                              hinweis=bool(a.bericht and mit_hinweis(a.bericht.stauchung, a.bericht.versatz_s, a.bericht.ersatz)))
+                              hinweis=bool(a.bericht and a.bericht.mit_hinweis))
                for a in plan.abschnitte]
     return PlanAntwort(id=knoten.id, stand=knoten.etag or "", plan=plan, staende=staende, haupt_id=haupt.id, haupt_pfad=haupt.pfad)
 

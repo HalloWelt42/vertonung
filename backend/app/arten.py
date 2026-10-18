@@ -24,6 +24,7 @@ from .modell.plan import Ergebnis, Plan
 from .sprechen import KeineLeitstelle
 from .teile import Teile
 from .dienst import DienstEingabe, dienst_ausfuehren
+from . import aussprache
 from .tempo import Probe
 from .uebersetzen import knapper_fassen, plan_uebersetzen, zu_lang
 from .werk.werk import ziel_format
@@ -137,6 +138,10 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
                     a.text = knapper[a.nr]
             if knapper:
                 gelaufen = await sprechen(gelaufen, 0.88, 0.91)
+        if einst.aussprache_pruefen and ls:
+            await k.fortschritt(0.91, "Aussprache prüfen", phase="sprechen")
+            await aussprache.pruefen(plan, gelaufen, teile.speicher(plan_id), ordner / "aussprache", teile.ton_jetzt,
+                                     teile.hoeren_text)
         await k.fortschritt(0.92, "Ablegen", phase="ablegen")
         erg = await plaene.ergebnis_ablegen(haupt_id, ziel)
         dauer_s = round(await teile.ton_jetzt.dauer(ziel), 2)

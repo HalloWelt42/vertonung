@@ -13,7 +13,6 @@ from pydantic import BaseModel
 from appkern.datenbank import Datenbank
 
 from .modell.plan import Art, Plan
-from .werk.zeitlage import mit_hinweis
 
 STUFEN = ["""
 CREATE TABLE IF NOT EXISTS plan (
@@ -63,8 +62,7 @@ class Verzeichnis:
                         anfrage_id: UUID | None = None) -> None:
         rollen = [RolleKurz(name=r.name, stimme=stimmen_namen.get(r.stimme.schluessel, r.stimme.name or "Klonstimme"))
                   for r in plan.rollen]
-        hinweise = sum(1 for a in plan.abschnitte if a.bericht and mit_hinweis(a.bericht.stauchung, a.bericht.versatz_s,
-                                                                               a.bericht.ersatz))
+        hinweise = sum(1 for a in plan.abschnitte if a.bericht and a.bericht.mit_hinweis)
         e = plan.ergebnis
         await self.db.ausfuehren(
             "INSERT INTO plan (id, name, art, haupt_id, haupt_pfad, anfrage_id, rollen, abschnitte, offen, hinweise, "

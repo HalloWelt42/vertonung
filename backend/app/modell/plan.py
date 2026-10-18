@@ -44,8 +44,12 @@ class Rolle(BaseModel):
     tempo: float = Field(1.0, ge=0.5, le=2.0)
 
 
+AUSSPRACHE_HINWEIS = 0.15       # ab dieser Wortfehlerquote beim Zurückhören ist ein Abschnitt ein Hinweis wert
+
+
 class Bericht(BaseModel):
-    """Wie ein Abschnitt entstand: Versuche, Ersatzstimme, Teilstücke; zeitgenau auch Lage, Stauchung und Versatz."""
+    """Wie ein Abschnitt entstand: Versuche, Ersatzstimme, Teilstücke; zeitgenau auch Lage, Stauchung und Versatz; nach
+    der Ausspracheprüfung die Wortfehlerquote beim Zurückhören und die abweichenden Stellen."""
 
     versuche: int = 1
     ersatz: bool = False
@@ -53,6 +57,14 @@ class Bericht(BaseModel):
     weg: Weg | None = None
     stauchung: float = 1.0
     versatz_s: float = 0.0
+    aussprache: float | None = None                         # 0 bis 1; None: nicht geprüft
+    abweichungen: list[str] = Field(default_factory=list)   # "soll -> gehört", höchstens acht
+
+    @property
+    def mit_hinweis(self) -> bool:
+        """Für den Filter "Mit Hinweis": gestaucht, geschoben, mit Ersatzstimme gesprochen oder auffällig gehört."""
+        return (self.stauchung > 1.0001 or self.versatz_s > 0.01 or self.ersatz
+                or (self.aussprache or 0.0) > AUSSPRACHE_HINWEIS)
 
 
 class Abschnitt(BaseModel):

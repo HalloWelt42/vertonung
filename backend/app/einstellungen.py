@@ -33,7 +33,11 @@ class AppEinstellungen(Grundeinstellungen):
     dienst_klonen: str = Field("klangwerk-klonen", title="Dienst für Klonstimmen", json_schema_extra=SPRECHEN,
                                description="Spricht mit einer Stimme nach ihrer Referenzprobe.")
     dienst_hoeren: str = Field("klangwerk-hoeren", title="Dienst zum Hören", json_schema_extra=SPRECHEN,
-                               description="Hört den Referenztext einer neuen Stimme heraus, wenn keiner angegeben ist.")
+                               description="Hört den Referenztext einer Stimme heraus, wenn keiner angegeben ist, und "
+                                           "prüft die Aussprache.")
+    aussprache_pruefen: bool = Field(True, title="Aussprache prüfen", json_schema_extra=SPRECHEN,
+                                     description="Jeder neu gesprochene Abschnitt wird zurückgehört und Wort für Wort mit "
+                                                 "dem Text verglichen; Abweichungen stehen im Bericht. Kostet etwas Zeit.")
 
     komfort: float = Field(1.15, ge=1.0, le=1.5, title="Stauchen unauffällig bis",
                            json_schema_extra={**ZEITGENAU, "schritt": 0.05, "einheit": "fach"},

@@ -94,7 +94,7 @@ class Werk:
             await pruefen()
             rolle = plan.rolle(a.rolle)
             soll = a.soll(rolle, plan.sprache)
-            datei = speicher / f"{a.nr:05d}-{soll}.wav"
+            datei = abschnitt_datei(speicher, a.nr, soll)
             if a.gesprochen_als == soll and datei.is_file():
                 werte[a.nr] = await self.ton.lesen(datei, RATE)
             else:
@@ -132,6 +132,11 @@ class Werk:
             bericht = a.bericht or Bericht()
             a.bericht = bericht.model_copy(update={"weg": lage.weg, "stauchung": lage.stauchung, "versatz_s": lage.versatz_s})
         return fuegen.legen(stuecke_, RATE, mindestens_s=plan.quelle_dauer_s or 0.0)
+
+
+def abschnitt_datei(speicher: Path, nr: int, soll: str) -> Path:
+    """Gesprochener Abschnitt im Zwischenspeicher eines Plans (Arbeitsformat), je Prüfsumme eine Datei."""
+    return speicher / f"{nr:05d}-{soll}.wav"
 
 
 def ziel_format(art: str, format: str, mp3_bitrate: str, quelle: Tonformat | None) -> tuple[Tonformat, str]:

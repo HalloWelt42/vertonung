@@ -56,6 +56,8 @@ export interface Bericht {
   weg: Weg | null;
   stauchung: number;
   versatz_s: number;
+  aussprache: number | null;       // Wortfehlerquote beim Zurückhören (0 bis 1), null: nicht geprüft
+  abweichungen: string[];          // "soll -> gehört"
 }
 
 export interface Abschnitt {

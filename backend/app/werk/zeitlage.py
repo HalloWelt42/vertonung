@@ -55,8 +55,3 @@ def legen(fenster: list[Fenster], *, quelle_ende: float | None = None, komfort: 
         lagen.append(Lage(beginn=round(beginn, 3), stauchung=round(stauchung, 4), weg=weg, versatz_s=max(versatz, 0.0)))
         frei_ab = beginn + f.dauer_s / stauchung
     return lagen
-
-
-def mit_hinweis(stauchung: float, versatz_s: float, ersatz: bool, komfort: float = KOMFORT) -> bool:
-    """Für den Filter "Mit Hinweis": gestaucht, geschoben oder mit Ersatzstimme gesprochen."""
-    return stauchung > 1.0001 or versatz_s > 0.01 or ersatz

@@ -13,6 +13,7 @@ from uuid import UUID
 from appkern.anmeldung import Konto
 from appkern.app import Begleiter, Geruest
 from appkern.kellerwolke import Kellerwolke, NichtGefunden
+from appkern.leitstelle import hoeren
 from appkern.ton import Ton
 
 from .ablage.plaene import Plaene
@@ -21,7 +22,7 @@ from .dienstablage import Ablage, DienstAblage
 from .einstellungen import AppEinstellungen
 from .modell.plan import StimmWahl
 from .modell.stimme import Stimme
-from .sprechen import Gewaehlt, Katalogstimme, Klonstimme, Sprechdienst
+from .sprechen import Gewaehlt, Katalogstimme, KeineLeitstelle, Klonstimme, Sprechdienst
 from .tempo import Sprechtempo
 from .verzeichnis import Verzeichnis
 from .werk.werk import Werk
@@ -127,11 +128,25 @@ class Teile(Begleiter):
         return s
 
     async def gewaehlt(self, wahl: StimmWahl) -> Gewaehlt:
-        """Für das Werk: Katalogname oder die Referenz der Klonstimme als Datei samt Referenztext."""
+        """Für das Werk: Katalogname oder die Referenz der Klonstimme als Datei samt Referenztext. Fehlt der Text (etwa
+        bei übernommenen Stimmen), wird er einmal herausgehört und in den Angaben gespeichert: das Modell klont nur mit
+        einem Text, der genau zur Referenz passt, sauber."""
         if wahl.art == "katalog":
             return Katalogstimme(wahl.name or self.einstellungen.stimme_vorgabe)
         datei, text = await self.stimmen.referenz(wahl.knoten_id)
+        if not text.strip() and self.geruest.leitstelle is not None:
+            s = await self.stimmen.lesen(wahl.knoten_id)
+            text = await self.hoeren_text(datei, s.angaben.sprache if s.angaben else "de")
+            if text and s.angaben:
+                await self.stimmen.aendern(wahl.knoten_id, s.angaben.model_copy(update={"referenztext": text[:2000]}))
         return Klonstimme(referenz=datei, referenztext=text)
+
+    async def hoeren_text(self, datei: Path, sprache: str) -> str:
+        """Was in einer Aufnahme gesprochen wird (Hördienst über die Leitstelle)."""
+        ls = self.geruest.leitstelle
+        if ls is None:
+            raise KeineLeitstelle("Zum Hören braucht die Vertonung die Leitstelle")
+        return (await hoeren(ls, self.einstellungen.dienst_hoeren, datei, sprache, titel="Vertonung: hören")).text
 
     async def stimmen_namen(self, wahlen: list[StimmWahl]) -> dict[str, str]:
         namen: dict[str, str] = {}

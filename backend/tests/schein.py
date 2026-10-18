@@ -45,6 +45,7 @@ class ScheinLeitstelle:
         self.aufrufe: list[tuple[str, str]] = []      # (Stimme oder "klon", Text)
         self.dateien: dict[str, bytes] = {}
         self.uebersetzt = 0
+        self.gehoert = 0
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         if request.url.path == "/v1/chat/completions":          # Sprachmodell: übersetzt mit "DE: " davor
@@ -72,6 +73,14 @@ class ScheinLeitstelle:
             name = f"t{len(self.dateien)}.wav"
             self.dateien[name] = ton(max(0.4, len(text) / 15))
             return httpx.Response(200, json={"filename": name, "sample_rate": 24000})
+        if rest == "stt":                                       # Hören: der gesprochene Text, dessen Länge am besten passt
+            self.gehoert += 1
+            roh = request.content[request.content.index(b"RIFF"):]
+            with wave.open(io.BytesIO(roh)) as w:
+                dauer = w.getnframes() / w.getframerate()
+            text = min((t for _, t in self.aufrufe), key=lambda t: abs(max(0.4, len(t) / 15) - dauer), default="")
+            return httpx.Response(200, json={"language": "de", "model": "schein", "segments": [
+                {"start": 0.0, "end": dauer, "text": text, "words": []}]})
         if rest.startswith("tts/audio/") and rest.rsplit("/", 1)[1] in self.dateien:
             return httpx.Response(200, content=self.dateien[rest.rsplit("/", 1)[1]], headers={"content-type": "audio/wav"})
         return httpx.Response(404, json={"detail": "nicht da"})
