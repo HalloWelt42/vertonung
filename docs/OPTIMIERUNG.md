@@ -85,6 +85,22 @@ Befund: Das 80B kürzt Inhalt weg (Telegrammstil, "a cool parlor trick" wird "ei
 mit festem Schema im Denkfeld (Appkern 0.28 liest es). Ursache beim 80B ist auch die Anweisung ("möglichst nahe am
 Ziel"); sie stellt jetzt Vollständigkeit vor Kürze (0.10.4), Messung folgt.
 
+Runde 5 (19.10.2026, Anweisung 0.10.4 "Vollständigkeit vor Kürze", K2, gleiche Budgets; Qwen 3.8 und 3.6 lokal, weil
+dasselbe Modell lokal da ist; Zeiten der lokalen Modelle mit Laden, 80B aus der Nacht davor):
+
+| Übersetzer | Dauer | über Grenze | knapper | Länge gegen Grenze | vollständig nach 80B / 3.6 35B / 3.8 27B |
+|---|---|---|---|---|---|
+| Qwen3-next 80B | 233 s | 0/16 | 0 | 0,82 | - / 88 % / 94 % |
+| Qwen 3.8 27B | 374 s | 0/16 | 1 | 0,81 | 100 % / 94 % / 100 % (eigenes) |
+| Qwen 3.6 35B-A3B | 308 s | 0/16 | 1 | 0,82 | 94 % / 81 % (eigenes) / 94 % |
+
+Befund: Die neue Anweisung wirkt. Das 80B nutzt das Budget jetzt wie die anderen (0,82 statt 0,58 bis 0,62) und
+kürzt keinen Inhalt mehr weg; die Gutachter finden je höchstens zwei Kleinigkeiten (Ton, "minions"). Qwen 3.6 35B
+lässt echte Sprachfehler stehen ("eventually scheiterte", "Wirtschaftlichkeit die Erstellung") und findet sie als
+eigener Gutachter selbst. Qwen 3.8 ist etwas vollständiger, aber rund 1,6-mal langsamer. Das 80B bleibt der Übersetzer;
+ein Wechsel lohnt nach dieser Messung nicht. Gutachter streuen weiter: 3.6 urteilt streng und zum Teil kleinlich
+(Einzahl und Mehrzahl), 3.8 schreibt Begründungen in die Felder.
+
 ## Strecke 2: Stimme kopieren (ein Sprecher), mittel
 
 1. Referenz gewinnen: 5 bis 7 Sekunden, Schnitt nur in Sprechpausen (Wortzeiten der Transkription), kein zweiter
