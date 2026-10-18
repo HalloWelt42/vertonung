@@ -167,7 +167,7 @@ rechts: hell oder dunkel). In allen Entwürfen stehen nur Katalog-Namen von Stim
 `mockups/vertonung-mobil.html`, eigene Telefonansicht (Reiter Vorlesen, Vertonungen, Stimmen, Mehr):
 
 1. **Vorlesen**: Text einfügen, Stimme, los; spielt ab dem ersten Satz.
-2. **Vertonungen**: Liste mit Stand, Tippen spielt das Ergebnis.
+2. **Vertonungen**: Liste mit Stand; Tippen öffnet die Vertonung, ein eigener Knopf spielt das Ergebnis.
 3. **Stimmen**: Liste nach Bereich, Probe anhören; eine Probe aufnehmen mit dem Rekorder des Appkerns.
 
 ## 7. Übernahme der Stimmen
@@ -181,6 +181,11 @@ Aufnahmen privat; der Nutzer bestätigt je Stimme), schreibt die Angaben und ver
 
 1. Entwürfe am Rechner und am Telefon: so übernehmen.
 2. Private Stimmen nur für Apps auf einer Erlaubnisliste in den Einstellungen; Vorgabe Rufzeichen, Fundus, Bombel,
-   Zusage; Medienpool nie. Der Server erzwingt es.
+   Zusage und (18.10.2026) der Nachvertoner von TubeVault; Medienpool nie. Der Server erzwingt es.
 3. Ergebnis beim Vorlesen und bei Dialogen: MP3 mono, 24 kHz, 128 kbit/s; WAV, FLAC und OGG wählbar.
 4. Repository: öffentlich, wie Transkription und Appkern.
+5. Dienst für andere Apps (18.10.2026): der Sender bestimmt, ob Aufnahme, Plan und Ergebnis in der Kellerwolke bleiben
+   (`behalten`); TubeVault behält nicht. Der Nachvertoner läuft auf dem Pi.
+6. Klonen in Originalstimmen (18.10.2026): Referenz 5 bis 7 Sekunden, geschnitten nur in Sprechpausen, Referenztext
+   genau für diesen Ausschnitt; die Stelle wird im ganzen Video gesucht. Eine gewonnene Stimme hängt am erkannten
+   Sprecher und wird bei späteren Videos wiederverwendet statt neu ausgeschnitten.

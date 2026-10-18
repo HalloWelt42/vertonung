@@ -55,7 +55,7 @@ class AppEinstellungen(Grundeinstellungen):
     mp3_bitrate: Literal["96k", "128k", "160k"] = Field("128k", title="Bitrate MP3", json_schema_extra=ERGEBNIS,
                                                         description="Für Sprache in Mono genügen 128 kbit/s.")
 
-    private_stimmen_fuer: list[str] = Field(["rufzeichen", "fundus", "bombel", "zusage"], title="Private Stimmen für",
+    private_stimmen_fuer: list[str] = Field(["rufzeichen", "fundus", "bombel", "zusage", "nachvertoner"], title="Private Stimmen für",
                                             json_schema_extra=STIMMEN,
                                             description="Kennungen der Apps (Zugänge der Kellerwolke), die private Stimmen "
                                                         "nutzen dürfen. Alle anderen bekommen nur fremde und Katalogstimmen; "
