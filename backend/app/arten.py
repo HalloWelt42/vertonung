@@ -24,7 +24,8 @@ from .modell.plan import Ergebnis, Plan
 from .sprechen import KeineLeitstelle
 from .teile import Teile
 from .dienst import DienstEingabe, dienst_ausfuehren
-from .uebersetzen import plan_uebersetzen
+from .tempo import Probe
+from .uebersetzen import knapper_fassen, plan_uebersetzen, zu_lang
 from .werk.werk import ziel_format
 
 KOPF_BYTES = 4 * 1024 * 1024      # zum Messen des Quellformats reicht meist der Anfang der Datei
@@ -55,6 +56,17 @@ async def quelle_messen(teile: Teile, kw: Kellerwolke, haupt_id: UUID, ordner: P
     return Tonformat(rate=e.rate or 48000, kanaele=min(e.kanaele or 2, 8), kodierung="pcm_s16le"), float(dauer)
 
 
+def frisch_gesprochen(vorher: Plan, gelaufen: Plan) -> list[Probe]:
+    """Messproben des Sprechtempos aus den Abschnitten, die dieser Lauf neu gesprochen hat (Dauer bei Tempo 1)."""
+    alt = {a.nr: a.gesprochen_als for a in vorher.abschnitte}
+    aus = []
+    for a in gelaufen.abschnitte:
+        if a.dauer_s and a.gesprochen_als and a.gesprochen_als != alt.get(a.nr):
+            rolle = gelaufen.rolle(a.rolle)
+            aus.append(Probe(rolle.stimme.schluessel, gelaufen.sprache, len(a.text), a.dauer_s * rolle.tempo))
+    return aus
+
+
 def uebertragen(ziel: Plan, gelaufen: Plan) -> Plan:
     """Ergebnisse eines Laufs in einen inzwischen geänderten Plan: je Abschnitt nur, wenn Nummer und Prüfsumme passen."""
     fertig = {a.nr: a for a in gelaufen.abschnitte}
@@ -79,8 +91,8 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
         haupt_id = knoten.haupt_id or (plan.quelle.knoten_id if plan.quelle else None)
         if haupt_id is None:
             raise ValueError("Der Plan gehört zu keiner Datei")
+        ls = teile.geruest.leitstelle
         if plan.zu_uebersetzen():
-            ls = teile.geruest.leitstelle
             if ls is None:
                 raise KeineLeitstelle("Zum Übersetzen braucht die Vertonung die Leitstelle")
 
@@ -92,7 +104,10 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
             async def uebersetzt(anteil: float, text: str) -> None:
                 await k.fortschritt(0.02 + 0.2 * anteil, text, phase="uebersetzen")
 
-            plan = await plan_uebersetzen(plan, ls, fortschritt=uebersetzt, pruefen=k.pruefen, merken=merken)
+            je_s = {r.kennung: await teile.tempo.zeichen_je_s(r.stimme.schluessel, plan.sprache) * r.tempo for r in plan.rollen}
+            neu = await plan_uebersetzen(plan, ls, zeichen_je_s=je_s, komfort=einst.komfort, hoechstens=einst.hoechstens,
+                                         fortschritt=uebersetzt, pruefen=k.pruefen, merken=merken)
+            await k.merken(uebersetzt=sorted(set(k.zwischenstand.get("uebersetzt", [])) | set(neu)))
         quelle: Tonformat | None = None
         if plan.art == "zeitgenau":
             quelle, dauer = await quelle_messen(teile, kw, haupt_id, ordner)
@@ -100,12 +115,28 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
         format, endung = ziel_format(plan.art, plan.ziel.format, einst.mp3_bitrate, quelle)
         ziel = ordner / f"ergebnis{endung}"
 
-        async def fortschritt(anteil: float, text: str) -> None:
-            await k.fortschritt(0.22 + 0.68 * anteil, text, phase="sprechen")
+        async def sprechen(p: Plan, von: float, bis: float) -> Plan:
+            async def fortschritt(anteil: float, text: str) -> None:
+                await k.fortschritt(von + (bis - von) * anteil, text, phase="sprechen")
 
-        gelaufen = await teile.werk().ausfuehren(plan, stimme=teile.gewaehlt, speicher=teile.speicher(plan_id),
-                                                 ziel=ziel, format=format, fortschritt=fortschritt, pruefen=k.pruefen,
-                                                 komfort=einst.komfort, hoechstens=einst.hoechstens)
+            g = await teile.werk().ausfuehren(p, stimme=teile.gewaehlt, speicher=teile.speicher(plan_id), ziel=ziel,
+                                              format=format, fortschritt=fortschritt, pruefen=k.pruefen,
+                                              komfort=einst.komfort, hoechstens=einst.hoechstens)
+            await teile.tempo.messen(frisch_gesprochen(p, g))
+            return g
+
+        gelaufen = await sprechen(plan, 0.22, 0.86)
+        # Übersetztes, das trotz stärkstem Stauchen nicht in seine Zeit passt: einmal knapper fassen, neu sprechen
+        lang = zu_lang(gelaufen, set(k.zwischenstand.get("uebersetzt", [])), einst.hoechstens) if ls else []
+        if lang:
+            await k.fortschritt(0.86, f"Knapper fassen: {len(lang)} Abschnitte passen nicht in ihre Zeit", phase="sprechen")
+            knapper = await knapper_fassen(ls, lang, gelaufen.ausgangssprache or "en", gelaufen.sprache,
+                                           titel=f"Vertonung: {gelaufen.name} knapper fassen")
+            for a in gelaufen.abschnitte:
+                if a.nr in knapper:
+                    a.text = knapper[a.nr]
+            if knapper:
+                gelaufen = await sprechen(gelaufen, 0.88, 0.91)
         await k.fortschritt(0.92, "Ablegen", phase="ablegen")
         erg = await plaene.ergebnis_ablegen(haupt_id, ziel)
         dauer_s = round(await teile.ton_jetzt.dauer(ziel), 2)

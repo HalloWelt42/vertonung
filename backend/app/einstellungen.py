@@ -44,6 +44,11 @@ class AppEinstellungen(Grundeinstellungen):
                               description="Schneller wird nie gesprochen; was dann noch fehlt, wird nach hinten geschoben. "
                                           "Gekürzt oder abgeschnitten wird nie.")
 
+    sprechtempo: float = Field(11.5, ge=5.0, le=25.0, title="Sprechtempo ab Werk",
+                               json_schema_extra={**ZEITGENAU, "schritt": 0.5, "einheit": "Zeichen je Sekunde"},
+                               description="Damit rechnet die Übersetzung, wie viel Text in die Zeit eines Abschnitts "
+                                           "passt, bis eine Stimme genug gesprochen hat; danach gilt ihr gemessenes Tempo.")
+
     format: Format = Field("mp3", title="Format beim Vorlesen", json_schema_extra={**ERGEBNIS, "beschriftungen": FORMATE},
                            description="Für Vorlesen und Dialoge. Zeitgenau entsteht immer eine WAV in Rate und Kanälen der "
                                        "Quellaufnahme.")

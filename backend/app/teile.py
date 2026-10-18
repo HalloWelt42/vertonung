@@ -17,6 +17,7 @@ from .einstellungen import AppEinstellungen
 from .modell.plan import StimmWahl
 from .modell.stimme import Stimme
 from .sprechen import Gewaehlt, Katalogstimme, Klonstimme, Sprechdienst
+from .tempo import Sprechtempo
 from .verzeichnis import Verzeichnis
 from .werk.werk import Werk
 
@@ -32,10 +33,12 @@ class Teile(Begleiter):
         self.stimmen = Stimmen(lambda: geruest.kellerwolke, geruest.daten / "referenzen")
         self.plaene = Plaene(lambda: geruest.kellerwolke)
         self.verzeichnis = Verzeichnis(geruest.db)
+        self.tempo = Sprechtempo(geruest.db, lambda: e().sprechtempo)
         self.dienst = Sprechdienst(lambda: geruest.leitstelle, lambda: (e().dienst_sprechen, e().dienst_klonen))
 
     async def starten(self) -> None:
         await self.verzeichnis.einrichten()
+        await self.tempo.einrichten()
 
     async def stoppen(self) -> None:
         return None

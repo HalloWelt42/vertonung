@@ -5,6 +5,7 @@
     { "name": "neu-dialog", "pfad": "/vertonen/neu/dialog" },
     { "name": "neu-zeitgenau", "pfad": "/vertonen/neu/zeitgenau/kellerwolke" },
     { "name": "stimmen", "pfad": "/stimmen" },
-    { "name": "einstellungen", "pfad": "/einstellungen" }
+    { "name": "einstellungen", "pfad": "/einstellungen" },
+    { "name": "einstellungen-zeitgenau", "pfad": "/einstellungen/zeitgenau" }
   ]
 }
