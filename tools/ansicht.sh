@@ -4,6 +4,6 @@
 #   tools/ansicht.sh [adresse] [--ausgabe ORDNER] [--nur SEITE]     Vorgabe: die Entwicklungsinstanz
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-ADRESSE="${1:-http://127.0.0.1:8641}"
+ADRESSE="${1:-http://127.0.0.1:8642}"
 [ $# -gt 0 ] && shift
 exec node frontend/node_modules/appkern-oberflaeche/oberflaeche/werkzeuge/ansicht.mjs "$ADRESSE" "$@"

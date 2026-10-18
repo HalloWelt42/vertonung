@@ -71,7 +71,8 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
     text = next((b for b in await kw.begleiter(haupt.id) if b.rolle in TEXTROLLEN), None)
     if text is None:
         if "weitergegeben" not in k.zwischenstand:
-            neu = await kw.weitergeben(teile.einstellungen.transkription_app, "transkribieren", haupt.id)
+            neu = await kw.weitergeben(teile.einstellungen.transkription_app, "transkribieren", haupt.id,
+                                       {"sprache": e.ausgangssprache or "auto"})
             await k.merken(weitergegeben=str(neu.anfrage.id), seit=time.time())
         seit = float(k.zwischenstand.get("seit", time.time()))
         while text is None:

@@ -44,8 +44,8 @@ export async function einstellungWert<T>(name: string): Promise<T | null> {
   return (e.werte[name] as T) ?? null;
 }
 // Kein Transkript neben einer Aufnahme: das Transkribieren an die Transkription weitergeben
-export const transkribierenLassen = (knotenId: string, anfrage?: AnfrageId) =>
-  hole<{ anfrage: string }>(mit(`/quelle/${knotenId}/transkribieren`, anfrage), { method: "POST" });
+export const transkribierenLassen = (knotenId: string, sprache: string, anfrage?: AnfrageId) =>
+  hole<{ anfrage: string }>(`/quelle/${knotenId}/transkribieren${abfrage({ anfrage, sprache })}`, { method: "POST" });
 // Der Plan neben einer Datei (Begleiter der Rolle vertonung), sonst null
 export const planZurDatei = async (knotenId: string, anfrage?: AnfrageId) =>
   (await hole<{ id: string | null }>(mit(`/quelle/${knotenId}/plan`, anfrage))).id;

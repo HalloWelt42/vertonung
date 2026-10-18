@@ -187,10 +187,12 @@ def router(teile: Teile) -> APIRouter:
                               dauer_s=float(dauer) if isinstance(dauer, (int, float)) else None)
 
     @r.post("/quelle/{knoten_id}/transkribieren")
-    async def transkribieren_lassen(knoten_id: UUID, anfrage: UUID | None = None, konto: Konto = g.pflicht) -> dict:
+    async def transkribieren_lassen(knoten_id: UUID, anfrage: UUID | None = None, sprache: str | None = None,
+                                    konto: Konto = g.pflicht) -> dict:
         """Kein Transkript neben der Aufnahme: das Transkribieren an die Transkription weitergeben (eine Anfrage der
-        Kellerwolke an sie; das Transkript kommt neben die Aufnahme)."""
-        neu = await teile.zugang(anfrage).weitergeben(teile.einstellungen.transkription_app, "transkribieren", knoten_id)
+        Kellerwolke an sie; das Transkript kommt neben die Aufnahme). `sprache`: die der Aufnahme, ohne erkennen."""
+        neu = await teile.zugang(anfrage).weitergeben(teile.einstellungen.transkription_app, "transkribieren", knoten_id,
+                                                      {"sprache": sprache or "auto"})
         return {"anfrage": str(neu.anfrage.id)}
 
     @r.get("/quelle/{knoten_id}/plan")

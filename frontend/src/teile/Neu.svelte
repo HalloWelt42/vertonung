@@ -74,7 +74,7 @@
     if (!ohneText) return;
     fehler = "";
     try {
-      await api.transkribierenLassen(ohneText, anfrage);
+      await api.transkribierenLassen(ohneText, ausgang, anfrage);
       transkribiert = true;
       warteTakt = setInterval(() => void vorschauLaden(), 10000);
     } catch (f) {
@@ -164,7 +164,7 @@
     {#if ohneText}
       <div class="hinweis-band"><i class="fa-solid {transkribiert ? 'fa-circle-notch fa-spin' : 'fa-closed-captioning'}"></i>
         <span>{transkribiert ? "Die Transkription arbeitet; sobald das Transkript neben der Aufnahme liegt, geht es hier weiter." :
-          "Neben dieser Aufnahme liegt noch kein Transkript und keine Untertitel. Die Transkription kann es anlegen."}</span>
+          `Neben dieser Aufnahme liegt noch kein Transkript und keine Untertitel. Die Transkription kann es anlegen (Aufnahme auf ${SPRACHEN[ausgang]}, unten änderbar).`}</span>
         {#if !transkribiert}<span class="knopfzeile"><button class="knopf primaer" onclick={transkribierenLassen}><i class="fa-solid fa-closed-captioning"></i> Transkribieren lassen</button></span>{/if}
       </div>
     {/if}
