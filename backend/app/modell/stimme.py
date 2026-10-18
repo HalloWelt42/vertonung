@@ -43,3 +43,21 @@ class Stimme(BaseModel):
     angaben: StimmAngaben | None = None
     pfad: str | None = None
     dauer_s: float | None = None
+
+
+ALTE_SPRACHEN = {"german": "de", "english": "en", "french": "fr", "spanish": "es", "italian": "it", "dutch": "nl"}
+ALTE_HERKUNFT = {"extracted": "aus einer Aufnahme gewonnen", "uploaded": "hochgeladen", "recorded": "aufgenommen"}
+
+
+def aus_alter_app(daten: dict, bereich: Bereich) -> StimmAngaben:
+    """Angaben der alten Stimmenausgabe (`stimme-alt/1`) im heutigen Format; den Bereich gibt der Ordner vor. Der Zusatz
+    "(Katalog)" der alten Namen fällt weg, die alte Herkunft steht in der Notiz."""
+    name = str(daten.get("name") or "Stimme").removesuffix(" (Katalog)").strip() or "Stimme"
+    herkunft = ALTE_HERKUNFT.get(str(daten.get("herkunft") or ""), str(daten.get("herkunft") or ""))
+    notiz = "Aus der alten Stimmenausgabe übernommen" + (f" ({herkunft})" if herkunft else "")
+    if daten.get("beschreibung"):
+        notiz += f". {daten['beschreibung']}"
+    sprache = str(daten.get("sprache") or "de").lower()
+    return StimmAngaben(name=name[:80], bereich=bereich, sprache=ALTE_SPRACHEN.get(sprache, sprache[:5] or "de"),
+                        referenztext=str(daten.get("referenztext") or "")[:2000], herkunft=Herkunft(art="uebernommen"),
+                        notiz=notiz[:2000])

@@ -9,13 +9,15 @@ from collections.abc import Callable
 from pathlib import Path
 from uuid import UUID
 
+import json
+
 import numpy as np
 from pydantic import ValidationError
 
 from appkern.kellerwolke import Kellerwolke, Knoten, NichtGefunden
 from appkern.ton import Ton, Tonformat
 
-from ..modell.stimme import Bereich, StimmAngaben, Stimme
+from ..modell.stimme import Bereich, StimmAngaben, Stimme, aus_alter_app
 from ..werk import fuegen
 from . import orte
 
@@ -63,6 +65,14 @@ def _angaben(inhalt: bytes, name: str) -> StimmAngaben:
         raise ValueError(f"{name}: keine lesbaren Stimmangaben ({f.errors()[0]['msg']})") from None
 
 
+def _bereich_aus_pfad(pfad: str) -> Bereich | None:
+    teile = pfad.split("/")
+    for bereich, ordner in orte.BEREICH_ORDNER.items():
+        if len(teile) >= 3 and teile[-3] == orte.STIMMEN and teile[-2] == ordner:
+            return bereich
+    return None
+
+
 class Stimmen:
     def __init__(self, kellerwolke: Callable[[], Kellerwolke | None], speicher: Path) -> None:
         """`speicher`: Ordner für geholte Referenzen (je Stand eine Datei)."""
@@ -81,9 +91,24 @@ class Stimmen:
     async def _angaben_lesen(self, k: Knoten) -> StimmAngaben:
         if k.etag and k.etag in self._gelesen:
             return self._gelesen[k.etag]
-        a = _angaben(await self.kw.lesen_ganz(k.id), k.name)
+        inhalt = await self.kw.lesen_ganz(k.id)
+        a = await self._alte_umstellen(k, inhalt) or _angaben(inhalt, k.name)
         if k.etag:
             self._gelesen[k.etag] = a
+        return a
+
+    async def _alte_umstellen(self, k: Knoten, inhalt: bytes) -> StimmAngaben | None:
+        """Übernommene Angaben der alten Stimmenausgabe: einmal ins heutige Format umstellen und so zurückschreiben
+        (eine neue Version, die alte bleibt in der Kellerwolke). Andere Angaben: None."""
+        try:
+            daten = json.loads(inhalt)
+        except ValueError:
+            return None
+        bereich = _bereich_aus_pfad(k.pfad)
+        if not isinstance(daten, dict) or daten.get("format") != "stimme-alt/1" or bereich is None:
+            return None
+        a = aus_alter_app(daten, bereich)
+        await self.kw.neue_version(k.id, a.model_dump_json(indent=1).encode(), stand=k.etag or "", inhaltstyp=orte.JSON)
         return a
 
     def _stimme(self, haupt: Knoten, angaben: StimmAngaben) -> Stimme:

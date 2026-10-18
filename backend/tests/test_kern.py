@@ -121,3 +121,12 @@ def test_fuegen():
     assert f.size == 2 * rate + rate // 2 and f[0] == 0.0          # Rand eingeblendet
     lage = fuegen.legen([(eins, 1.0), (zwei, 3.0)], rate, mindestens_s=6.0)
     assert lage.size == 6 * rate and lage[int(2.5 * rate)] == 0.0 and lage[int(3.5 * rate)] == pytest.approx(0.5)
+
+
+def test_angaben_der_alten_stimmenausgabe_werden_umgestellt():
+    from app.modell.stimme import aus_alter_app
+    alt = {"format": "stimme-alt/1", "name": "Kerstin (Katalog)", "sprache": "german", "referenztext": "Guten Tag.",
+           "herkunft": "extracted", "beschreibung": "", "alte_kennung": "abc"}
+    a = aus_alter_app(alt, "fremd")
+    assert (a.format, a.name, a.bereich, a.sprache, a.referenztext) == ("stimme/1", "Kerstin", "fremd", "de", "Guten Tag.")
+    assert a.herkunft.art == "uebernommen" and "aus einer Aufnahme gewonnen" in a.notiz
