@@ -47,3 +47,33 @@ gleicher Appkern in Oberfläche und Backend, Fassungen, HTTP/2, deckende Symbole
 | `backend/app/api.py` | eigene Endpunkte |
 | `frontend/src/App.svelte` | Bereiche der App in der gemeinsamen Schale |
 | `frontend/src/seiten/` | Seiten der Bereiche |
+
+Entwurf und Entscheidungen: `docs/ENTWURF.md`; Entwürfe der Oberfläche in `mockups/`.
+
+## Lizenz
+
+**Nicht-kommerzielle Nutzung** - Siehe [LICENSE](LICENSE)
+
+Erlaubt: Private Nutzung, Installation, persönliche Anpassungen, Teilen mit Quellenangabe
+
+Verboten: Kommerzielle Nutzung, Verkauf, Einbindung in kommerzielle Produkte
+
+---
+
+## Unterstützen
+
+Vertonung ist ein privates Hobby-Projekt. Kein Tracking, keine Werbung, keine Kompromisse.
+
+Wenn dir das Projekt gefällt, kannst du ihm einen Stern geben - oder direkt hier:
+
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/HalloWelt42)
+
+**Crypto:**
+
+| Coin | Adresse |
+|------|---------|
+| BTC | `bc1qnd599khdkv3v3npmj9ufxzf6h4fzanny2acwqr` |
+| DOGE | `DL7tuiYCqm3xQjMDXChdxeQxqUGMACn1ZV` |
+| ETH | `0x8A28fc47bFFFA03C8f685fa0836E2dBe1CA14F27` |
+
+Copyright (c) 2026 HalloWelt42

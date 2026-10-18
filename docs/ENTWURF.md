@@ -1,6 +1,6 @@
 # Vertonung: Entwurf
 
-Stand 18.10.2026, zur Freigabe. Grundlage: die Entscheidungen im Neubauplan (`txt2voice/docs/NEUBAU.md`, Abschnitt
+Stand 18.10.2026, freigegeben. Grundlage: die Entscheidungen im Neubauplan (`txt2voice/docs/NEUBAU.md`, Abschnitt
 "Vertonung"), die Bestandsaufnahme der alten Sprachausgabe in txt2voice (Endpunkte, Formate, Kunden) und die Lehren des
 Appkerns (`Appkern/docs/LEHREN.md`).
 
@@ -177,10 +177,10 @@ Vorschau ordnet sie nach `Stimmen/Privat` und `Stimmen/Fremd` (Vorschlag aus der
 Aufnahmen privat; der Nutzer bestätigt je Stimme), schreibt die Angaben und verschiebt, ohne Doppel anzulegen
 (Prüfsumme gegen den ganzen Zweig).
 
-## 8. Fragen zur Freigabe
+## 8. Entscheidungen des Nutzers (18.10.2026)
 
-1. Entwürfe am Rechner und am Telefon so übernehmen?
-2. Private Stimmen nur für Apps auf einer Erlaubnisliste in den Einstellungen (Vorschlag: Rufzeichen, Fundus, Bombel,
-   Zusage; Medienpool nie)?
-3. Ergebnis beim Vorlesen als MP3 mono, 24 kHz, 128 kbit/s?
-4. Repository öffentlich wie Transkription und Appkern?
+1. Entwürfe am Rechner und am Telefon: so übernehmen.
+2. Private Stimmen nur für Apps auf einer Erlaubnisliste in den Einstellungen; Vorgabe Rufzeichen, Fundus, Bombel,
+   Zusage; Medienpool nie. Der Server erzwingt es.
+3. Ergebnis beim Vorlesen und bei Dialogen: MP3 mono, 24 kHz, 128 kbit/s; WAV, FLAC und OGG wählbar.
+4. Repository: öffentlich, wie Transkription und Appkern.
