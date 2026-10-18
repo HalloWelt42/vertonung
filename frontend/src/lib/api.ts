@@ -38,7 +38,7 @@ export const ergebnisAdresse = (id: string, anfrage?: AnfrageId, stand?: string 
 
 export const quelle = (knotenId: string, anfrage?: AnfrageId) =>
   hole<{ id: string; name: string; pfad: string; art: string; textquelle: string | null; sprecher: string[]; abschnitte: number;
-         dauer_s: number | null; text: string | null }>(mit(`/quelle/${knotenId}`, anfrage));
+         dauer_s: number | null; text: string | null; sprache: string | null }>(mit(`/quelle/${knotenId}`, anfrage));
 export async function einstellungWert<T>(name: string): Promise<T | null> {
   const e = await hole<{ werte: Record<string, unknown> }>("/einstellungen");
   return (e.werte[name] as T) ?? null;

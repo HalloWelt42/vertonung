@@ -10,6 +10,7 @@
 .plan-zeile + .plan-zeile { margin-top: 2px; }
 .plan-zeile .nr { font-family: ui-monospace, monospace; font-size: var(--marke); color: var(--text-3); text-align: right; padding-top: 5px; }
 .plan-zeile .satz { line-height: 1.6; min-width: 0; padding-top: 2px; }
+.plan-zeile .original { font-size: var(--klein); color: var(--text-3); line-height: 1.5; margin-top: 2px; }
 .plan-zeile .unter { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-top: 3px; }
 .plan-zeile .dauer { font-family: ui-monospace, monospace; font-size: var(--marke); color: var(--text-3); white-space: nowrap; }
 .plan-zeile.jetzt { background: var(--akzent-weich); }

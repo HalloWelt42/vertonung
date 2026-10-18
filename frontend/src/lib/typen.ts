@@ -62,6 +62,8 @@ export interface Abschnitt {
   nr: number;
   rolle: string;
   text: string;
+  original: string | null;
+  uebersetzt_aus: string | null;
   start: number | null;
   ende: number | null;
   pause_danach_s: number;
@@ -77,6 +79,7 @@ export interface Plan {
   quelle: { knoten_id: string; pfad: string; etag?: string | null } | null;
   quelle_dauer_s: number | null;
   sprache: string;
+  ausgangssprache: string | null;
   rollen: Rolle[];
   abschnitte: Abschnitt[];
   ziel: { format: Format | "wie_quelle" };
@@ -88,6 +91,7 @@ export interface AbschnittStand {
   nr: number;
   stand: Stand;
   hinweis: boolean;
+  uebersetzen: boolean;
 }
 
 export interface PlanAntwort {
@@ -131,8 +135,14 @@ export interface PlanAnlegen {
   stimme?: StimmWahl | null;
   stimmen?: Record<string, StimmWahl>;
   sprache?: string | null;
+  ausgangssprache?: string | null;
   format?: Format | null;
 }
+
+export const SPRACHEN: Record<string, string> = {
+  de: "Deutsch", en: "Englisch", fr: "Französisch", es: "Spanisch", it: "Italienisch", nl: "Niederländisch", pt: "Portugiesisch",
+  pl: "Polnisch", ru: "Russisch", tr: "Türkisch", ja: "Japanisch", zh: "Chinesisch",
+};
 
 export const ARTEN: Record<Art, { titel: string; symbol: string }> = {
   vorlesen: { titel: "Vorlesen", symbol: "fa-book-open-reader" },

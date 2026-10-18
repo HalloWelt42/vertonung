@@ -7,19 +7,22 @@
            type WahlEintrag, type WahlSeite, type WahlZweck } from "appkern-oberflaeche";
   import * as api from "../lib/api";
   import { stimmenLaden, stimmenListe } from "../lib/stimmen.svelte";
-  import { ARTEN, type Art, type Format, type StimmWahl } from "../lib/typen";
+  import { ARTEN, SPRACHEN, type Art, type Format, type StimmWahl } from "../lib/typen";
   import StimmFeld from "./StimmFeld.svelte";
 
   let { art, anfrage = null, ordner = null, kellerwolke = false }:
     { art: Art; anfrage?: string | null; ordner?: string | null; kellerwolke?: boolean } = $props();
 
-  interface Vorschau { id: string; name: string; pfad: string; art: string; textquelle: string | null; sprecher: string[]; abschnitte: number; dauer_s: number | null; text: string | null }
+  interface Vorschau { id: string; name: string; pfad: string; art: string; textquelle: string | null; sprecher: string[]; abschnitte: number; dauer_s: number | null; text: string | null; sprache: string | null }
 
   let name = $state("");
   let text = $state("");
   let stimme = $state<StimmWahl>({ art: "katalog", name: "serena" });
   let rollen = $state<Record<string, StimmWahl>>({});
   let format = $state<Format>("mp3");
+  let sprache = $state("de");
+  let ausgang = $state("en");
+  const SPRACHWAHL = Object.entries(SPRACHEN).map(([wert, titel]) => ({ wert, titel }));
   let vorschau = $state<Vorschau | null>(null);
   let fehler = $state("");
   let legtAn = $state(false);
@@ -36,12 +39,14 @@
     if (!stimmenListe.geladen) void stimmenLaden();
     void api.einstellungWert<string>("stimme_vorgabe").then((v) => { if (v) stimme = { art: "katalog", name: v }; }).catch(() => {});
     void api.einstellungWert<Format>("format").then((v) => { if (v) format = v; }).catch(() => {});
+    void api.einstellungWert<string>("sprache").then((v) => { if (v) sprache = v; }).catch(() => {});
     if (anfrage) {
       void (async () => {
         try {
           const a = await anfrageHolen(anfrage);
           vorschau = await api.quelle(a.knoten_id, anfrage);
           name = vorschau.name.replace(/\.[^.]+$/, "");
+          if (vorschau.sprache) ausgang = vorschau.sprache;
           if (vorschau.text) text = vorschau.text;
         } catch (f) {
           fehler = (f as Error).message;
@@ -58,7 +63,8 @@
       const stimmen: Record<string, StimmWahl> = {};
       for (const n of namen) stimmen[n] = rollen[n] ?? stimme;
       const p = await api.planAnlegen({
-        art, name: name.trim(), stimme, stimmen, format: art === "zeitgenau" ? null : format,
+        art, name: name.trim(), stimme, stimmen, format: art === "zeitgenau" ? null : format, sprache,
+        ausgangssprache: art === "zeitgenau" ? ausgang : null,
         ...(vorschau ? { quelle_id: vorschau.id, anfrage_id: anfrage } : { text }),
       });
       gehe(`vertonen/${p.id}${anfrage ? `/anfrage/${anfrage}` : ""}`);
@@ -139,7 +145,15 @@
       <label>Name <span class="eingabe" style="width:240px; height:38px"><input class="eingabe-roh" bind:value={name} placeholder="Name der Vertonung" /></span></label>
       <label>Stimme <StimmFeld bind:wahl={stimme} /></label>
       {#if art !== "zeitgenau"}<label>Format <Auswahl bind:wert={format} optionen={FORMATE} /></label>{/if}
+      {#if art === "zeitgenau"}
+        <label>Aufnahme auf <Auswahl bind:wert={ausgang} optionen={SPRACHWAHL} /></label>
+        <label>Sprechen auf <Auswahl bind:wert={sprache} optionen={SPRACHWAHL} /></label>
+      {/if}
     </div>
+    {#if art === "zeitgenau" && ausgang !== sprache}
+      <p class="leer" style="text-align:left; padding:0 2px 12px">Vor dem Sprechen wird aus dem {SPRACHEN[ausgang]}en ins {SPRACHEN[sprache]}e
+        übersetzt: vollständig, knapp genug für die Zeitfenster, nie gekürzt. Das Original bleibt je Abschnitt im Plan.</p>
+    {/if}
     {#if art !== "vorlesen"}{@render rollenWahl()}{/if}
     {#if art !== "zeitgenau"}
       <textarea class="text-eingabe" bind:value={text} readonly={!!vorschau} aria-label="Text"

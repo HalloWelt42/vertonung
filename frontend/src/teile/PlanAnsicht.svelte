@@ -152,10 +152,12 @@
             <textarea class="text-eingabe niedrig" bind:value={entwurf} autofocus onblur={() => textFertig(a)}
                       onkeydown={(k) => { if (k.key === "Escape") bearbeitet = null; if (k.key === "Enter" && !k.shiftKey) { k.preventDefault(); textFertig(a); } }}></textarea>
           {:else}
-            <span role="button" tabindex="0" title="Klicken zum Ändern" onclick={() => textBeginnen(a)} onkeydown={(k) => k.key === "Enter" && textBeginnen(a)}>{a.text}</span>
+            <span role="button" tabindex="0" title="Klicken zum Ändern" onclick={() => textBeginnen(a)} onkeydown={(k) => k.key === "Enter" && textBeginnen(a)}>{s?.uebersetzen ? "" : a.text}</span>
           {/if}
+          {#if a.original}<div class="original" lang={plan?.ausgangssprache ?? undefined}>{a.original}</div>{/if}
           <div class="unter"><span class="dauer">{zeitText(a)}</span>
             <span class="stand-pille {s?.stand === 'gesprochen' ? 'fertig' : s?.stand === 'geaendert' ? 'warn' : 'offen'}">{s?.stand === "gesprochen" ? "gesprochen" : s?.stand === "geaendert" ? "geändert" : "offen"}</span>
+            {#if s?.uebersetzen}<span class="stand-pille offen">wird übersetzt</span>{/if}
             {#each hinweisPillen(a) as h (h.text)}<span class="stand-pille {h.klasse}">{h.text}</span>{/each}
           </div>
         </div>
