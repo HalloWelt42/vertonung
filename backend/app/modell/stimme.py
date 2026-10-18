@@ -31,6 +31,7 @@ class StimmAngaben(BaseModel):
     referenztext: str = Field("", max_length=2000)
     herkunft: Herkunft | None = None
     sprecherprofil: str | None = None      # Kennung des Sprecherprofils in der Transkription (dieselbe Person)
+    abdruck: list[float] | None = None     # Stimmabdruck des Sprechers aus dem Transkript (zum Wiedererkennen ohne Profil)
     notiz: str = Field("", max_length=2000)
 
 
