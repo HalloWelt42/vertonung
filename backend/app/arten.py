@@ -1,35 +1,118 @@
-"""Arten von Aufträgen. Der Probeauftrag zeigt den Ablauf (Phasen, Fortschritt, Abbruch, Fortsetzen) und wird durch
-die eigentlichen Arten der App ersetzt."""
+"""Arten von Aufträgen der Vertonung.
 
-import asyncio
+vertonen    Einen Plan mit dem Werk ausführen: sprechen (nur Geändertes), fügen, einmal ins Zielformat schreiben, das
+            Ergebnis neben die Hauptdatei legen, den Plan mit Prüfsummen und Bericht zurückschreiben. Wurde der Plan
+            während des Laufs geändert, bleiben die Änderungen; übernommen wird nur, was zu ihnen passt.
+"""
+
+from __future__ import annotations
+
+import shutil
+from datetime import UTC, datetime
+from pathlib import Path
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from appkern.app import Geruest
 from appkern.auftraege import Art, Kontext, Phase
+from appkern.kellerwolke import Kellerwolke, StandVeraltet
+from appkern.ton import Tonformat
+
+from .modell.plan import Ergebnis, Plan
+from .teile import Teile
+from .werk.werk import ziel_format
+
+KOPF_BYTES = 4 * 1024 * 1024      # zum Messen des Quellformats reicht meist der Anfang der Datei
 
 
-class ProbeEingabe(BaseModel):
-    schritte: int = Field(10, ge=1, le=1000)
-    pause_s: float = Field(0.5, ge=0, le=10)
+class VertonenEingabe(BaseModel):
+    plan_id: UUID
+    anfrage_id: UUID | None = Field(None, description="Anfrage der Kellerwolke, wenn die Hauptdatei außerhalb der App liegt")
+    von: str | None = None
 
 
-def arten(geruest: Geruest) -> list[Art]:
-    async def probe(k: Kontext):
-        await k.fortschritt(0.0, "Vorbereiten", phase="vorbereiten")
-        fertig = int(k.zwischenstand.get("fertig", 0))
-        await k.fortschritt(fertig / k.eingabe.schritte, "Rechnen", phase="rechnen")
-        for n in range(fertig, k.eingabe.schritte):
-            await k.pruefen()
-            await asyncio.sleep(k.eingabe.pause_s)
-            await k.merken(fertig=n + 1)
-            await k.fortschritt((n + 1) / k.eingabe.schritte, f"Schritt {n + 1} von {k.eingabe.schritte}")
-        await k.fortschritt(1.0, "Abschließen", phase="abschliessen")
-        return {"schritte": k.eingabe.schritte}
+async def quelle_messen(teile: Teile, kw: Kellerwolke, haupt_id: UUID, ordner: Path) -> tuple[Tonformat, float]:
+    """Rate, Kanäle und Dauer der Aufnahme: erst aus dem Anfang der Datei, sonst aus der ganzen."""
+    ton = teile.ton_jetzt
+    knoten = await kw.knoten(haupt_id)
+    kopf = ordner / f"quelle{Path(knoten.name).suffix.lower()}"
+    with open(kopf, "wb") as datei:
+        async for stueck in kw.lesen(haupt_id, start=0, ende=KOPF_BYTES - 1):
+            datei.write(stueck)
+    try:
+        e = await ton.eigenschaften(kopf)
+        if not (e.rate and e.kanaele) or (knoten.groesse or 0) > KOPF_BYTES and e.dauer_s <= 0:
+            raise ValueError("Kopf reicht nicht")
+    except Exception:  # noqa: BLE001 - etwa MP4 mit dem Inhaltsverzeichnis am Ende: dann die ganze Datei
+        await kw.herunterladen(haupt_id, kopf)
+        e = await ton.eigenschaften(kopf)
+    dauer = knoten.felder.get("dauer_s") or e.dauer_s
+    return Tonformat(rate=e.rate or 48000, kanaele=min(e.kanaele or 2, 8), kodierung="pcm_s16le"), float(dauer)
+
+
+def uebertragen(ziel: Plan, gelaufen: Plan) -> Plan:
+    """Ergebnisse eines Laufs in einen inzwischen geänderten Plan: je Abschnitt nur, wenn Nummer und Prüfsumme passen."""
+    fertig = {a.nr: a for a in gelaufen.abschnitte}
+    for a in ziel.abschnitte:
+        g = fertig.get(a.nr)
+        if g is not None and g.gesprochen_als == a.soll(ziel.rolle(a.rolle), ziel.sprache):
+            a.gesprochen_als, a.dauer_s, a.bericht = g.gesprochen_als, g.dauer_s, g.bericht
+    ziel.ergebnis, ziel.quelle_dauer_s = gelaufen.ergebnis, gelaufen.quelle_dauer_s or ziel.quelle_dauer_s
+    return ziel
+
+
+def arten(teile: Teile) -> list[Art]:
+    async def vertonen(k: Kontext) -> dict:
+        e: VertonenEingabe = k.eingabe
+        plaene = teile.plaene_fuer(e.anfrage_id)
+        kw = teile.zugang(e.anfrage_id)
+        einst = teile.einstellungen
+        ordner = teile.arbeit / k.auftrag_id
+        ordner.mkdir(parents=True, exist_ok=True)
+        try:
+            await k.fortschritt(0.0, "Vorbereiten", phase="vorbereiten")
+            plan, knoten = await plaene.lesen(e.plan_id)
+            haupt_id = knoten.haupt_id or (plan.quelle.knoten_id if plan.quelle else None)
+            if haupt_id is None:
+                raise ValueError("Der Plan gehört zu keiner Datei")
+            quelle: Tonformat | None = None
+            if plan.art == "zeitgenau":
+                quelle, dauer = await quelle_messen(teile, kw, haupt_id, ordner)
+                plan.quelle_dauer_s = plan.quelle_dauer_s or dauer
+            format, endung = ziel_format(plan.art, plan.ziel.format, einst.mp3_bitrate, quelle)
+            ziel = ordner / f"ergebnis{endung}"
+
+            async def fortschritt(anteil: float, text: str) -> None:
+                await k.fortschritt(0.05 + 0.85 * anteil, text, phase="sprechen")
+
+            gelaufen = await teile.werk().ausfuehren(plan, stimme=teile.gewaehlt, speicher=teile.speicher(e.plan_id),
+                                                     ziel=ziel, format=format, fortschritt=fortschritt, pruefen=k.pruefen,
+                                                     komfort=einst.komfort, hoechstens=einst.hoechstens)
+            await k.fortschritt(0.92, "Ablegen", phase="ablegen")
+            erg = await plaene.ergebnis_ablegen(haupt_id, ziel)
+            dauer_s = round(await teile.ton_jetzt.dauer(ziel), 2)
+            gelaufen.ergebnis = Ergebnis(knoten_id=erg.id, pfad=erg.pfad, dauer_s=dauer_s, erstellt_am=datetime.now(UTC))
+            gelaufen.geaendert_am = datetime.now(UTC)
+            for _ in range(3):
+                try:
+                    neu_knoten = await plaene.schreiben(e.plan_id, gelaufen, knoten.etag or "")
+                    break
+                except StandVeraltet:
+                    aktuell, knoten = await plaene.lesen(e.plan_id)      # inzwischen geändert: Änderungen behalten
+                    gelaufen = uebertragen(aktuell, gelaufen)
+            else:
+                raise StandVeraltet("Der Plan ändert sich laufend; das Ergebnis liegt neben der Datei")
+            haupt = await kw.knoten(haupt_id)
+            await teile.verzeichnis.eintragen(gelaufen, neu_knoten.id, haupt_id, haupt.pfad,
+                                              await teile.stimmen_namen([r.stimme for r in gelaufen.rollen]), e.anfrage_id)
+            return {"ergebnis": str(erg.id), "pfad": erg.pfad, "dauer_s": dauer_s, "abschnitte": len(gelaufen.abschnitte),
+                    "ersatz": sum(1 for a in gelaufen.abschnitte if a.bericht and a.bericht.ersatz)}
+        finally:
+            shutil.rmtree(ordner, ignore_errors=True)
 
     return [
-        Art("probe", "Probeauftrag", probe, eingabe=ProbeEingabe, fortsetzbar=True, nach_neustart="fortsetzen",
+        Art("vertonen", "Vertonen", vertonen, eingabe=VertonenEingabe, fortsetzbar=True, nach_neustart="fortsetzen",
             phasen=[Phase(schluessel="vorbereiten", titel="Vorbereiten", symbol="box-open"),
-                    Phase(schluessel="rechnen", titel="Rechnen", symbol="gears"),
-                    Phase(schluessel="abschliessen", titel="Abschließen", symbol="flag-checkered")]),
+                    Phase(schluessel="sprechen", titel="Sprechen", symbol="microphone"),
+                    Phase(schluessel="ablegen", titel="Ablegen", symbol="cloud-arrow-up")]),
     ]
