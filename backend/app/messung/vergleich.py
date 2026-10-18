@@ -5,6 +5,10 @@ ist). Läuft im Container der App; Adresse und Schlüssel der Leitstelle kommen 
 
     python -m app.messung.vergleich <plan.json> --modelle qwen/qwen3-next-80b,qwen/qwen3.8-27b --tempo 17 \\
         [--gutachter qwen/qwen3-next-80b] [--aus ergebnis.json]
+    python -m app.messung.vergleich <plan.json> --begutachten ergebnis.json --gutachter qwen/qwen3.6-35b-a3b
+
+Ein Gutachter, der seine eigene Übersetzung prüft, sieht eigene Kürzungen nicht (Messung 18.10.2026); daher lässt sich
+eine fertige Messung mit einem anderen Gutachter erneut begutachten.
 """
 
 from __future__ import annotations
@@ -76,10 +80,31 @@ async def messen(plan: Plan, ls: Leitstelle, modell: str, tempo: float, einst: A
             "texte": {a.nr: glaetten(texte[a.nr]) for a in abschnitte}}
 
 
+async def begutachten(plan: Plan, ls: Leitstelle, datei: Path, gutachter: str) -> None:
+    originale = {a.nr: a.original or "" for a in plan.abschnitte}
+    ergebnisse = json.loads(datei.read_text())
+    for e in ergebnisse:
+        if not e.get("texte"):
+            continue
+        texte = {int(nr): t for nr, t in e["texte"].items()}
+        g = await gutachten(ls, gutachter, [(nr, originale[nr], t) for nr, t in texte.items()])
+        voll = round(sum(1 for x in g.values() if x.get("vollstaendig")) / max(1, len(texte)), 3)
+        e.setdefault("gutachten", {})[gutachter] = {"vollstaendig": voll, "maengel": {
+            nr: {"fehlt": x.get("fehlt"), "hinzu": x.get("hinzu")} for nr, x in g.items() if not x.get("vollstaendig")}}
+        print(f"{e['modell']:28} nach {gutachter}: vollständig {voll:.0%}", flush=True)
+    datei.write_text(json.dumps(ergebnisse, ensure_ascii=False, indent=1))
+
+
 async def haupt(args) -> None:
     plan = Plan.model_validate(json.loads(Path(args.plan).read_text())["plan"])
     einst = AppEinstellungen()
     ls = Leitstelle(os.environ["VERTONUNG_LEITSTELLE_ADRESSE"], os.environ["VERTONUNG_LEITSTELLE_SCHLUESSEL"], "Vertonung")
+    if args.begutachten:
+        try:
+            await begutachten(plan, ls, Path(args.begutachten), args.gutachter)
+        finally:
+            await ls.schliessen()
+        return
     try:
         ergebnisse = []
         for modell in args.modelle.split(","):
@@ -106,11 +131,15 @@ async def haupt(args) -> None:
 def main() -> None:
     p = argparse.ArgumentParser(description="Übersetzungsmodelle vergleichen")
     p.add_argument("plan")
-    p.add_argument("--modelle", required=True)
-    p.add_argument("--tempo", type=float, required=True, help="Sprechtempo der Stimme in Zeichen je Sekunde")
+    p.add_argument("--modelle", help="Modelle zum Übersetzen, durch Kommas getrennt")
+    p.add_argument("--tempo", type=float, default=17.0, help="Sprechtempo der Stimme in Zeichen je Sekunde")
+    p.add_argument("--begutachten", help="nur eine fertige Messung (JSON) mit --gutachter erneut begutachten")
     p.add_argument("--gutachter", default="qwen/qwen3-next-80b")
     p.add_argument("--aus")
-    asyncio.run(haupt(p.parse_args()))
+    args = p.parse_args()
+    if not (args.modelle or args.begutachten):
+        p.error("--modelle oder --begutachten angeben")
+    asyncio.run(haupt(args))
 
 
 if __name__ == "__main__":
