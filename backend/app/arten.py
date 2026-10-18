@@ -14,8 +14,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from appkern.anfragen import Angebot
 from appkern.auftraege import Art, Kontext, Phase
-from appkern.kellerwolke import Kellerwolke, StandVeraltet
+from appkern.kellerwolke import Aktion, Kellerwolke, StandVeraltet
 from appkern.ton import Tonformat
 
 from .modell.plan import Ergebnis, Plan
@@ -116,3 +117,17 @@ def arten(teile: Teile) -> list[Art]:
                     Phase(schluessel="sprechen", titel="Sprechen", symbol="microphone"),
                     Phase(schluessel="ablegen", titel="Ablegen", symbol="cloud-arrow-up")]),
     ]
+
+
+# Was die App im Dateimenü der Kellerwolke anbietet (und in der eigenen Dateiwahl). Alle öffnen die Oberfläche: die
+# Stimmen wählt der Mensch, bevor gesprochen wird (Vorschau vor Anwenden).
+MEDIEN = ("audio/*", "video/*")
+TEXTE = ("text/plain", "text/markdown")
+ANGEBOTE = [
+    Angebot(Aktion(kennung="oeffnen", titel="In Vertonung öffnen", symbol="fa-up-right-from-square", typen=MEDIEN + TEXTE,
+                   art="oeffnen", rolle="vertonung")),
+    Angebot(Aktion(kennung="vorlesen", titel="Vorlesen", titel_erneut="Neu vorlesen", symbol="fa-book-open-reader",
+                   typen=TEXTE, art="oeffnen", rolle="sprache")),
+    Angebot(Aktion(kennung="neu_sprechen", titel="Neu sprechen", titel_erneut="Erneut neu sprechen", symbol="fa-clock",
+                   typen=MEDIEN, art="oeffnen", rolle="sprache")),
+]

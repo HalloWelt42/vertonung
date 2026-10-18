@@ -11,6 +11,9 @@ from dataclasses import dataclass, field
 from .modell.plan import Abschnitt, Plan, Quelle, Rolle, StimmWahl, Ziel
 from .saetze import ELLIPSE, SCHLUSSZEICHEN, saetze
 
+__all__ = ["Segment", "aus_dialog", "aus_segmenten", "aus_text", "saetze", "segmente_aus_transkript",
+           "segmente_aus_untertiteln", "zusammenfassen"]
+
 PAUSE_SATZ_S = 0.35
 PAUSE_ABSATZ_S = 0.8
 PAUSE_DIALOG_S = 0.45

@@ -3,7 +3,7 @@
    Oberfläche bindet sie ein, die Entwürfe in mockups/ ebenso. */
 
 /* ----- Plan: Abschnitte (Zeilen des Plans; .abschnitt gehört der Schale) ----- */
-.abschnitte { max-width: 1020px; }
+.plan-liste { max-width: 1020px; }
 .plan-zeile { display: grid; grid-template-columns: 34px 150px minmax(0, 1fr) 36px; gap: 12px; align-items: start;
               padding: 8px 12px; border-radius: var(--r2); }
 .plan-zeile.ohne-rolle { grid-template-columns: 34px minmax(0, 1fr) 36px; }

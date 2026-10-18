@@ -68,6 +68,32 @@ def _antwort(plan: Plan, knoten: Knoten, haupt: Knoten) -> PlanAntwort:
     return PlanAntwort(id=knoten.id, stand=knoten.etag or "", plan=plan, staende=staende, haupt_id=haupt.id, haupt_pfad=haupt.pfad)
 
 
+class QuelleVorschau(BaseModel):
+    """Was eine Quelle für einen Plan hergibt, bevor er angelegt wird (Rollen wählen, Text ansehen)."""
+
+    id: UUID
+    name: str
+    pfad: str
+    art: Literal["text", "medium", "transkript", "untertitel"]
+    textquelle: str | None = None            # Name des Transkripts oder der Untertitel einer Aufnahme
+    sprecher: list[str] = Field(default_factory=list)
+    abschnitte: int = 0
+    dauer_s: float | None = None
+    text: str | None = None                  # Anfang eines Textes
+
+
+async def _textquelle(kw, k: Knoten) -> Knoten:
+    """Für eine Aufnahme ihr Transkript (sonst ihre Untertitel); Texte, Transkripte und Untertitel sind es selbst."""
+    if (k.inhaltstyp or "").startswith(("audio/", "video/")):
+        begleiter = await kw.begleiter(k.id)
+        for rolle in ("transkript", "untertitel", "untertitel_vtt"):
+            t = next((b for b in begleiter if b.rolle == rolle), None)
+            if t is not None:
+                return t
+        raise ValueError("Zu dieser Aufnahme gibt es kein Transkript und keine Untertitel: erst transkribieren")
+    return k
+
+
 def router(teile: Teile) -> APIRouter:
     g = teile.geruest
     r = APIRouter(prefix="/api/v1", tags=["plaene"], dependencies=[g.pflicht])
@@ -107,7 +133,7 @@ def router(teile: Teile) -> APIRouter:
             else:
                 if a.quelle_id is None:
                     raise ValueError("Zeitgenau braucht ein Transkript oder Untertitel")
-                textquelle = await kw.knoten(a.quelle_id)
+                textquelle = await _textquelle(kw, await kw.knoten(a.quelle_id))
                 inhalt = (await kw.lesen_ganz(textquelle.id)).decode("utf-8", "replace")
                 if textquelle.name.lower().endswith(UNTERTITEL):
                     segmente = planen.segmente_aus_untertiteln(inhalt)
@@ -124,6 +150,35 @@ def router(teile: Teile) -> APIRouter:
         knoten = await plaene.speichern(haupt.id, plan)
         await eintragen(plan, knoten, haupt, a.anfrage_id)
         return _antwort(plan, knoten, haupt)
+
+    @r.get("/quelle/{knoten_id}", response_model=QuelleVorschau)
+    async def quelle(knoten_id: UUID, anfrage: UUID | None = None) -> QuelleVorschau:
+        kw = teile.zugang(anfrage)
+        k = await kw.knoten(knoten_id)
+        try:
+            t = await _textquelle(kw, k)
+        except ValueError as f:
+            raise HTTPException(422, str(f)) from f
+        inhalt = (await kw.lesen_ganz(t.id)).decode("utf-8", "replace")
+        if t.name.lower().endswith(UNTERTITEL):
+            gruppen = planen.zusammenfassen(planen.segmente_aus_untertiteln(inhalt))
+            art = "untertitel"
+        elif t.name.lower().endswith(".json"):
+            gruppen = planen.zusammenfassen(planen.segmente_aus_transkript(json.loads(inhalt)))
+            art = "transkript"
+        else:
+            return QuelleVorschau(id=k.id, name=k.name, pfad=k.pfad, art="text", abschnitte=len(planen.saetze(inhalt)),
+                                  text=inhalt[:4000])
+        dauer = k.felder.get("dauer_s")
+        return QuelleVorschau(id=k.id, name=k.name, pfad=k.pfad, art=art if t.id == k.id else "medium",
+                              textquelle=t.name if t.id != k.id else None,
+                              sprecher=list(dict.fromkeys(g.sprecher or "Sprecher" for g in gruppen)), abschnitte=len(gruppen),
+                              dauer_s=float(dauer) if isinstance(dauer, (int, float)) else None)
+
+    @r.get("/quelle/{knoten_id}/plan")
+    async def plan_zur_datei(knoten_id: UUID, anfrage: UUID | None = None) -> dict:
+        k = await teile.plaene_fuer(anfrage).zur_quelle(knoten_id)
+        return {"id": str(k.id) if k else None}
 
     @r.get("/plaene/{plan_id}", response_model=PlanAntwort)
     async def lesen(plan_id: UUID, anfrage: UUID | None = None) -> PlanAntwort:
