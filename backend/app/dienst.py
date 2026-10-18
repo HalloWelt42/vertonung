@@ -2,7 +2,8 @@
 Stimme und auf Wunsch schon mit Segmenten; sie liegt danach in der Kellerwolke unter `Dienst/<App>` im Zweig der
 Vertonung, Segmente als Transkript daneben. Ein Auftrag erledigt den Rest: fehlt der Text, gibt er das Transkribieren
 an die Transkription weiter und wartet auf ihr Transkript; dann Plan zeitgenau (mit Übersetzung, wenn die Sprachen
-abweichen), sprechen, Ergebnis neben die Aufnahme."""
+abweichen), sprechen, Ergebnis neben die Aufnahme. Danach bietet `texte` dem Sender an, was dabei an Text entstand: das
+Transkript der Quelle (wenn die Vertonung es transkribieren ließ) und den Text der neuen Tonspur an seinen Zeiten."""
 
 from __future__ import annotations
 
@@ -19,8 +20,10 @@ from appkern.auftraege import Kontext
 
 from . import originalstimmen, planen
 from .ablage import orte
+from .dienstablage import Ablage
 from .modell.plan import Klonmodus, Quelle, StimmWahl, Ziel
 from .teile import Teile
+from .werk.zeitlage import spannen
 
 TEXTROLLEN = ("transkript", "untertitel", "untertitel_vtt")
 WARTEN_S = 15
@@ -133,7 +136,49 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
         await k.merken(plan_id=plan_id)
         await teile.dienstablage.plan_merken(k.auftrag_id, plan_id)
     ergebnis = await plan_ausfuehren(teile, k, UUID(plan_id), None)
-    return {**ergebnis, "plan_id": plan_id, "stimmen": k.zwischenstand.get("stimmen", {})}
+    return {**ergebnis, "plan_id": plan_id, "stimmen": k.zwischenstand.get("stimmen", {}),
+            "transkribiert": "weitergegeben" in k.zwischenstand}
+
+
+class TextSegment(BaseModel):
+    start: float
+    ende: float
+    text: str
+    sprecher: str | None = None
+
+
+class TextSpur(BaseModel):
+    sprache: str
+    segmente: list[TextSegment]
+
+
+class Texte(BaseModel):
+    transkript: TextSpur | None = Field(None, description="Text der Quelle mit Sprechern, nur wenn die Vertonung ihn "
+                                                          "transkribieren ließ (mitgeschickte Segmente kennt der Sender)")
+    uebersetzung: TextSpur | None = Field(None, description="Text der neuen Tonspur, an den Zeiten, an denen er dort "
+                                                            "gesprochen wird (bei gleicher Sprache der neu gesprochene)")
+
+
+async def texte(teile: Teile, a: Ablage, ergebnis: dict) -> Texte:
+    """Was ein fertiger Dienstauftrag an Text hat; zu holen vor `abgeholt` (danach liegt alles im Papierkorb)."""
+    kw = teile.zugang()
+    transkript = None
+    if ergebnis.get("transkribiert"):
+        b = next((x for x in await kw.begleiter(a.haupt_id) if x.rolle == "transkript"), None)
+        if b is not None:
+            t = json.loads((await kw.lesen_ganz(b.id)).decode("utf-8", "replace"))
+            transkript = TextSpur(sprache=(t.get("sprache") if t.get("sprache") not in (None, "", "auto") else None)
+                                  or ergebnis.get("ausgangssprache") or "",
+                                  segmente=[TextSegment(start=x.start, ende=x.ende, text=x.text.strip(), sprecher=x.sprecher)
+                                            for x in planen.segmente_aus_transkript(t) if x.text.strip()])
+    uebersetzung = None
+    if a.plan_id is not None:
+        plan, _ = await teile.plaene.lesen(a.plan_id)
+        lage = {s.nr: s for s in spannen(plan)}
+        uebersetzung = TextSpur(sprache=plan.sprache, segmente=[
+            TextSegment(start=lage[x.nr].von, ende=lage[x.nr].bis, text=x.text.strip(), sprecher=plan.rolle(x.rolle).name)
+            for x in plan.abschnitte if x.nr in lage and x.text.strip()])
+    return Texte(transkript=transkript, uebersetzung=uebersetzung)
 
 
 async def ablegen(teile: Teile, app: str, name: str, endung: str, datei, segmente: list[DienstSegment] | None,

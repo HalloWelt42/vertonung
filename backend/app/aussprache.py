@@ -15,6 +15,7 @@ from pathlib import Path
 from appkern.ton import HOEREN, Aufbereiten, Ausgabe, Tonarbeit
 
 from .modell.plan import Plan
+from .werk.zeitlage import Spanne, spannen
 from .sprechfassung import sprechbar
 
 SPITZE = 0.98         # ein übersteuertes Stück wird leiser, damit der Hördienst sauberen Ton bekommt
@@ -50,31 +51,6 @@ def abgleichen(soll: str, gehoert: str) -> Abgleich:
 
 STUECK_S = 300.0      # so viel Ergebnis je Hör-Anfrage (geteilt an Abschnittsgrenzen)
 RAND_S = 0.15         # Spielraum, mit dem ein Wort an den Rändern eines Abschnitts noch zu ihm zählt
-
-
-@dataclass(frozen=True)
-class Spanne:
-    nr: int
-    von: float
-    bis: float
-
-
-def spannen(plan: Plan) -> list[Spanne]:
-    """Wo jeder gesprochene Abschnitt im Ergebnis liegt: zeitgenau an seiner Lage (Beginn plus Versatz, Länge
-    gestaucht), sonst nacheinander mit den Pausen dazwischen."""
-    aus, t = [], 0.0
-    for a in plan.abschnitte:
-        if not a.dauer_s:
-            continue
-        b = a.bericht
-        if plan.art == "zeitgenau":
-            von = (a.start or 0.0) + (b.versatz_s if b else 0.0)
-            laenge = a.dauer_s / (b.stauchung if b else 1.0)
-        else:
-            von, laenge = t, a.dauer_s
-            t += a.dauer_s + a.pause_danach_s
-        aus.append(Spanne(a.nr, round(von, 3), round(von + laenge, 3)))
-    return aus
 
 
 def stuecke(span: list[Spanne], gesamt_s: float, hoechstens_s: float = STUECK_S) -> list[tuple[float, float]]:

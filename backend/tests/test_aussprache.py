@@ -23,7 +23,8 @@ def test_hinweis_ab_der_schwelle():
 
 
 def test_spannen_und_hoerstuecke():
-    from app.aussprache import spannen, stuecke
+    from app.aussprache import stuecke
+    from app.werk.zeitlage import spannen
     from app.modell.plan import Bericht
     from app.planen import Segment, aus_segmenten
     from app.modell.plan import StimmWahl

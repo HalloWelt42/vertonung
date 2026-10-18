@@ -152,6 +152,13 @@ async def test_ganzer_weg(tmp_path: Path):
                 e = await Ton().eigenschaften(datei)
                 assert (e.rate, e.kanaele, e.kodierung) == (48000, 2, "aac") and e.dauer_s >= 10.0
                 assert m4a.content.index(b"moov") < m4a.content.index(b"mdat")      # Inhaltsverzeichnis vorn
+                # die Texte: Segmente kamen vom Sender (kein Transkript zurück), der Text der Tonspur an seinen Zeiten
+                t = (await c.get(f"/api/v1/dienst/{dienst_auftrag}/texte", headers=h)).json()
+                assert t["transkript"] is None and t["uebersetzung"]["sprache"] == "de"
+                ue = t["uebersetzung"]["segmente"]
+                assert [x["text"] for x in ue] == ["DE: Good evening.", "DE: Thanks for having me."]
+                assert ue[0]["start"] == pytest.approx(0.5, abs=0.01) and ue[0]["ende"] > ue[0]["start"]
+                assert ue[1]["start"] >= ue[0]["ende"] and [x["sprecher"] for x in ue] == ["Host", "Gast"]
                 # der Sender wollte nicht behalten: nach dem Abholen liegt alles im Papierkorb, Plan und Eintrag sind weg
                 r = await c.post(f"/api/v1/dienst/{dienst_auftrag}/abgeholt", headers=h)
                 assert r.status_code == 200 and r.json() == {"behalten": False}

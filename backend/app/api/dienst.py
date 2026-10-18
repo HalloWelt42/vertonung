@@ -1,8 +1,9 @@
 """Vertonung als Dienst für andere Apps (App-Schlüssel der Kellerwolke): eine Aufnahme hochladen, auf Wunsch mit
 Segmenten (Start, Ende, Text, Sprecher), Sprachen und Stimme; zurück kommt der Auftrag. Sein Ergebnis nennt den Plan;
-der Ton liegt dann unter /api/v1/inhalt/plaene/<plan>/ergebnis (zeitgenau, so lang wie die Aufnahme). Ob Aufnahme, Plan
-und Ergebnis in der Kellerwolke bleiben, bestimmt der Sender (`behalten`); ohne meldet er nach dem Herunterladen
-`POST /dienst/<auftrag>/abgeholt`, spätestens nach der Frist räumt die Vertonung selbst weg."""
+der Ton liegt dann unter /api/v1/inhalt/plaene/<plan>/ergebnis (zeitgenau, so lang wie die Aufnahme), die Texte unter
+`GET /dienst/<auftrag>/texte`. Ob Aufnahme, Plan und Ergebnis in der Kellerwolke bleiben, bestimmt der Sender
+(`behalten`); ohne meldet er nach dem Herunterladen `POST /dienst/<auftrag>/abgeholt`, spätestens nach der Frist räumt
+die Vertonung selbst weg."""
 
 from __future__ import annotations
 
@@ -18,7 +19,7 @@ from appkern.anmeldung import Konto
 from appkern.app import von
 from appkern.auftraege import Auftrag
 
-from ..dienst import DienstEingabe, DienstSegment, ablegen
+from ..dienst import DienstEingabe, DienstSegment, Texte, ablegen, texte
 from ..modell.plan import Klonmodus, StimmWahl
 from ..teile import Teile
 
@@ -71,6 +72,18 @@ def router(teile: Teile) -> APIRouter:
         auftrag = await g.auftraege.einreihen("dienst_vertonen", eingabe, titel=f"{name} ({konto.app or 'direkt'})")
         await teile.dienstablage.eintragen(auftrag.id, haupt.id, konto.app or "Direkt", behalten)
         return auftrag
+
+    @r.get("/dienst/{auftrag_id}/texte", response_model=Texte)
+    async def texte_holen(auftrag_id: str, konto: Konto = g.pflicht) -> Texte:
+        """Transkript der Quelle (wenn die Vertonung es transkribieren ließ) und Text der neuen Tonspur mit Zeiten; vor
+        `abgeholt` zu holen."""
+        a = await teile.dienstablage.eine(auftrag_id)
+        if a is None or (not konto.mensch and (konto.app or "Direkt") != a.app):
+            raise HTTPException(404, "Diesen Dienstauftrag gibt es nicht (mehr)")
+        auftrag = await g.auftraege.holen(auftrag_id)
+        if auftrag.zustand != "fertig":
+            raise HTTPException(409, "Der Auftrag ist nicht fertig")
+        return await texte(teile, a, auftrag.ergebnis or {})
 
     @r.post("/dienst/{auftrag_id}/abgeholt", response_model=Abgeholt)
     async def abgeholt(auftrag_id: str, konto: Konto = g.pflicht) -> Abgeholt:
