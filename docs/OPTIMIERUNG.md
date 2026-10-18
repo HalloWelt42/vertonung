@@ -136,6 +136,22 @@ Runde 3 (K3c, 18.10.2026, alles über den Tondienst):
 | Aussprache | im Mittel 18,3 % (viele Abschnitte mit 1 bis 4 Wörtern: ein falsch gehörtes Wort zählt 25 % und mehr) |
 | Dauer | 29:30, davon 17 Minuten ein durchgegangener Klon (das Modell erzeugte bis zur Vorgabe von 4096 Token, etwa 340 s Ton, verworfen als Echo); Klangwerk 0.3.1 begrenzt die Länge nach dem Text |
 
+Empfindlichkeit der Trennung (K3, derselbe Ton in kleinen Abwandlungen, Sprechzeit der beiden Sprecher in Sekunden):
+
+| Abwandlung | Wechsel | Sprecher |
+|---|---|---|
+| Tondienst (16 kHz) | 56 | 137,1 / 33,7 |
+| Mac, ffmpeg ohne soxr | 50 | 140,3 / 30,9 |
+| Original (m4a) | 50 | 140,3 / 30,9 |
+| 0,5 dB lauter / leiser | 56 | 137,6 / 33,1 und 137,1 / 33,6 |
+| Rauschen -60 dB | 53 | 138,8 / 31,8 |
+| 20 ms später beginnen | 40 | 164,1 / 7,2 |
+| auf dem Pi gewandelt | 66 | 147,0 / 7,1 |
+
+Pegel und Rauschen ändern nichts; eine Verschiebung um 20 ms (andere Fensterlage der Trennung) oder ein anderer
+Resampler kippt die Gruppierung. Nächster Schritt: die Schwelle der Gruppierung der Trennung und eine Prüfung über
+zwei Fensterlagen messen (erst messen, dann entscheiden).
+
 Offen: die Trennung bleibt empfindlich (kleine Abweichungen im Ton kippen die Gruppierung); Messgröße Aussprache nach
 Wörtern gewichten statt je Abschnitt; kurze Einwürfe (unter 1,5 s) eher mit dem Nachbarabschnitt desselben Sprechers
 zusammenfassen oder bei hoher Stauchung schieben.
