@@ -71,6 +71,20 @@ Befund Runde 2: Mit gemessenem Tempo wird weniger gestrafft und etwas mehr gesta
 
 Befund Runde 1: Die Zeit-Stimme spricht rund 17 Zeichen je Sekunde (Katalogstimme serena 11,6); gerechnet wurde noch mit der Vorgabe 11,5, die Übersetzung wurde also stärker gestrafft als nötig. Das Tempo ist jetzt gemessen. Sprechen kostet am meisten (40 bis 60 s je Abschnitt von 12 bis 39 s).
 
+Runde 4 (Modellvergleich, K2, 16 Abschnitte, gleiche Anweisung und Budgets; Werkzeug app/messung/vergleich.py):
+
+| Übersetzer | Dauer warm | Länge gegen Grenze | vollständig nach 3.6 35B / 3.8 27B / 3.6 27B |
+|---|---|---|---|
+| Qwen3-next 80B | 105 bis 170 s | 0,58 bis 0,62 | 94 % / 56 bis 81 % / 100 % |
+| Qwen 3.8 27B | 316 s | 0,79 bis 0,81 | 100 % / 100 % (eigenes) / 100 % |
+| Qwen 3.6 27B (8 Bit) | (476 s mit Laden) | 0,78 | 100 % / 100 % / - |
+| Qwen 3.6 35B-A3B | 79 s | 0,58 bis 0,80 | 94 % (eigenes) / 69 bis 100 % / 94 % |
+
+Befund: Das 80B kürzt Inhalt weg (Telegrammstil, "a cool parlor trick" wird "einen Trick"), und als eigener Gutachter
+übersieht es das; Gutachter streuen stark, ein Urteil braucht mehrere. Neue Modelle in LM Studio liefern die Antwort
+mit festem Schema im Denkfeld (Appkern 0.28 liest es). Ursache beim 80B ist auch die Anweisung ("möglichst nahe am
+Ziel"); sie stellt jetzt Vollständigkeit vor Kürze (0.10.4), Messung folgt.
+
 ## Strecke 2: Stimme kopieren (ein Sprecher), mittel
 
 1. Referenz gewinnen: 5 bis 7 Sekunden, Schnitt nur in Sprechpausen (Wortzeiten der Transkription), kein zweiter
