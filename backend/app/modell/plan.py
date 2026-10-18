@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, model_validator
 
 Art = Literal["vorlesen", "dialog", "zeitgenau"]
 ARTEN: dict[str, str] = {"vorlesen": "Vorlesen", "dialog": "Dialog", "zeitgenau": "Zeitgenau"}
-Zielformat = Literal["mp3", "wav", "flac", "ogg", "wie_quelle"]
+Zielformat = Literal["mp3", "wav", "flac", "ogg", "wie_quelle", "m4a"]   # m4a: zeitgenau, AAC wie die Quelle
 Stand = Literal["offen", "gesprochen", "geaendert"]
 Weg = Literal["frei", "luecke", "gestaucht", "geschoben"]
 

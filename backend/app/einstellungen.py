@@ -11,6 +11,7 @@ SPRECHEN = {"gruppe": "Sprechen"}
 ZEITGENAU = {"gruppe": "Zeitgenau"}
 ERGEBNIS = {"gruppe": "Ergebnis"}
 STIMMEN = {"gruppe": "Stimmen"}
+VERBUND = {"gruppe": "Verbund"}
 TECHNIK = {"gruppe": "Technik"}
 
 SPRACHEN = {"de": "Deutsch", "en": "Englisch", "fr": "Französisch", "es": "Spanisch", "it": "Italienisch"}
@@ -56,6 +57,10 @@ class AppEinstellungen(Grundeinstellungen):
                                                         "Medienpool nie.")
     probe_min_s: float = Field(6.0, ge=3.0, le=15.0, title="Probe mindestens", json_schema_extra={**STIMMEN, "einheit": "s"},
                                description="Kürzere Stellen ergeben keine Klonstimme.")
+
+    transkription_app: str = Field("Transkription", title="Transkription", json_schema_extra=VERBUND,
+                                   description="Name der Transkription unter den Zugängen der Kellerwolke. Liegt neben einer "
+                                               "Aufnahme kein Transkript, gibt die Vertonung das Transkribieren dorthin weiter.")
 
     zwischenspeicher_gb: int = Field(5, ge=1, le=100, title="Speicher für gesprochene Abschnitte",
                                      json_schema_extra={**TECHNIK, "einheit": "GB"},

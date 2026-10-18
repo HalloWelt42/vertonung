@@ -23,6 +23,7 @@ from appkern.ton import Tonformat
 from .modell.plan import Ergebnis, Plan
 from .sprechen import KeineLeitstelle
 from .teile import Teile
+from .dienst import DienstEingabe, dienst_ausfuehren
 from .uebersetzen import plan_uebersetzen
 from .werk.werk import ziel_format
 
@@ -65,77 +66,89 @@ def uebertragen(ziel: Plan, gelaufen: Plan) -> Plan:
     return ziel
 
 
+async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: UUID | None) -> dict:
+    """Einen Plan ausführen (Auftrag Vertonen und Dienst): übersetzen, sprechen, fügen, ablegen, Plan zurückschreiben."""
+    plaene = teile.plaene_fuer(anfrage_id)
+    kw = teile.zugang(anfrage_id)
+    einst = teile.einstellungen
+    ordner = teile.arbeit / k.auftrag_id
+    ordner.mkdir(parents=True, exist_ok=True)
+    try:
+        await k.fortschritt(0.0, "Vorbereiten", phase="vorbereiten")
+        plan, knoten = await plaene.lesen(plan_id)
+        haupt_id = knoten.haupt_id or (plan.quelle.knoten_id if plan.quelle else None)
+        if haupt_id is None:
+            raise ValueError("Der Plan gehört zu keiner Datei")
+        if plan.zu_uebersetzen():
+            ls = teile.geruest.leitstelle
+            if ls is None:
+                raise KeineLeitstelle("Zum Übersetzen braucht die Vertonung die Leitstelle")
+
+            async def merken(p: Plan) -> None:
+                nonlocal knoten
+                p.geaendert_am = datetime.now(UTC)
+                knoten = await plaene.schreiben(plan_id, p, knoten.etag or "")
+
+            async def uebersetzt(anteil: float, text: str) -> None:
+                await k.fortschritt(0.02 + 0.2 * anteil, text, phase="uebersetzen")
+
+            plan = await plan_uebersetzen(plan, ls, fortschritt=uebersetzt, pruefen=k.pruefen, merken=merken)
+        quelle: Tonformat | None = None
+        if plan.art == "zeitgenau":
+            quelle, dauer = await quelle_messen(teile, kw, haupt_id, ordner)
+            plan.quelle_dauer_s = plan.quelle_dauer_s or dauer
+        format, endung = ziel_format(plan.art, plan.ziel.format, einst.mp3_bitrate, quelle)
+        ziel = ordner / f"ergebnis{endung}"
+
+        async def fortschritt(anteil: float, text: str) -> None:
+            await k.fortschritt(0.22 + 0.68 * anteil, text, phase="sprechen")
+
+        gelaufen = await teile.werk().ausfuehren(plan, stimme=teile.gewaehlt, speicher=teile.speicher(plan_id),
+                                                 ziel=ziel, format=format, fortschritt=fortschritt, pruefen=k.pruefen,
+                                                 komfort=einst.komfort, hoechstens=einst.hoechstens)
+        await k.fortschritt(0.92, "Ablegen", phase="ablegen")
+        erg = await plaene.ergebnis_ablegen(haupt_id, ziel)
+        dauer_s = round(await teile.ton_jetzt.dauer(ziel), 2)
+        welle = await teile.ton_jetzt.wellenform(ziel, 400)
+        gelaufen.ergebnis = Ergebnis(knoten_id=erg.id, pfad=erg.pfad, dauer_s=dauer_s, erstellt_am=datetime.now(UTC),
+                                     wellenform=welle)
+        gelaufen.geaendert_am = datetime.now(UTC)
+        for _ in range(3):
+            try:
+                neu_knoten = await plaene.schreiben(plan_id, gelaufen, knoten.etag or "")
+                break
+            except StandVeraltet:
+                aktuell, knoten = await plaene.lesen(plan_id)      # inzwischen geändert: Änderungen behalten
+                gelaufen = uebertragen(aktuell, gelaufen)
+        else:
+            raise StandVeraltet("Der Plan ändert sich laufend; das Ergebnis liegt neben der Datei")
+        haupt = await kw.knoten(haupt_id)
+        await teile.verzeichnis.eintragen(gelaufen, neu_knoten.id, haupt_id, haupt.pfad,
+                                          await teile.stimmen_namen([r.stimme for r in gelaufen.rollen]), anfrage_id)
+        return {"ergebnis": str(erg.id), "pfad": erg.pfad, "dauer_s": dauer_s, "abschnitte": len(gelaufen.abschnitte),
+                "ersatz": sum(1 for a in gelaufen.abschnitte if a.bericht and a.bericht.ersatz)}
+    finally:
+        shutil.rmtree(ordner, ignore_errors=True)
+
+
+
 def arten(teile: Teile) -> list[Art]:
     async def vertonen(k: Kontext) -> dict:
         e: VertonenEingabe = k.eingabe
-        plaene = teile.plaene_fuer(e.anfrage_id)
-        kw = teile.zugang(e.anfrage_id)
-        einst = teile.einstellungen
-        ordner = teile.arbeit / k.auftrag_id
-        ordner.mkdir(parents=True, exist_ok=True)
-        try:
-            await k.fortschritt(0.0, "Vorbereiten", phase="vorbereiten")
-            plan, knoten = await plaene.lesen(e.plan_id)
-            haupt_id = knoten.haupt_id or (plan.quelle.knoten_id if plan.quelle else None)
-            if haupt_id is None:
-                raise ValueError("Der Plan gehört zu keiner Datei")
-            if plan.zu_uebersetzen():
-                ls = teile.geruest.leitstelle
-                if ls is None:
-                    raise KeineLeitstelle("Zum Übersetzen braucht die Vertonung die Leitstelle")
+        return await plan_ausfuehren(teile, k, e.plan_id, e.anfrage_id)
 
-                async def merken(p: Plan) -> None:
-                    nonlocal knoten
-                    p.geaendert_am = datetime.now(UTC)
-                    knoten = await plaene.schreiben(e.plan_id, p, knoten.etag or "")
+    async def dienst_vertonen(k: Kontext) -> dict:
+        return await dienst_ausfuehren(teile, k)
 
-                async def uebersetzt(anteil: float, text: str) -> None:
-                    await k.fortschritt(0.02 + 0.2 * anteil, text, phase="uebersetzen")
-
-                plan = await plan_uebersetzen(plan, ls, fortschritt=uebersetzt, pruefen=k.pruefen, merken=merken)
-            quelle: Tonformat | None = None
-            if plan.art == "zeitgenau":
-                quelle, dauer = await quelle_messen(teile, kw, haupt_id, ordner)
-                plan.quelle_dauer_s = plan.quelle_dauer_s or dauer
-            format, endung = ziel_format(plan.art, plan.ziel.format, einst.mp3_bitrate, quelle)
-            ziel = ordner / f"ergebnis{endung}"
-
-            async def fortschritt(anteil: float, text: str) -> None:
-                await k.fortschritt(0.22 + 0.68 * anteil, text, phase="sprechen")
-
-            gelaufen = await teile.werk().ausfuehren(plan, stimme=teile.gewaehlt, speicher=teile.speicher(e.plan_id),
-                                                     ziel=ziel, format=format, fortschritt=fortschritt, pruefen=k.pruefen,
-                                                     komfort=einst.komfort, hoechstens=einst.hoechstens)
-            await k.fortschritt(0.92, "Ablegen", phase="ablegen")
-            erg = await plaene.ergebnis_ablegen(haupt_id, ziel)
-            dauer_s = round(await teile.ton_jetzt.dauer(ziel), 2)
-            welle = await teile.ton_jetzt.wellenform(ziel, 400)
-            gelaufen.ergebnis = Ergebnis(knoten_id=erg.id, pfad=erg.pfad, dauer_s=dauer_s, erstellt_am=datetime.now(UTC),
-                                         wellenform=welle)
-            gelaufen.geaendert_am = datetime.now(UTC)
-            for _ in range(3):
-                try:
-                    neu_knoten = await plaene.schreiben(e.plan_id, gelaufen, knoten.etag or "")
-                    break
-                except StandVeraltet:
-                    aktuell, knoten = await plaene.lesen(e.plan_id)      # inzwischen geändert: Änderungen behalten
-                    gelaufen = uebertragen(aktuell, gelaufen)
-            else:
-                raise StandVeraltet("Der Plan ändert sich laufend; das Ergebnis liegt neben der Datei")
-            haupt = await kw.knoten(haupt_id)
-            await teile.verzeichnis.eintragen(gelaufen, neu_knoten.id, haupt_id, haupt.pfad,
-                                              await teile.stimmen_namen([r.stimme for r in gelaufen.rollen]), e.anfrage_id)
-            return {"ergebnis": str(erg.id), "pfad": erg.pfad, "dauer_s": dauer_s, "abschnitte": len(gelaufen.abschnitte),
-                    "ersatz": sum(1 for a in gelaufen.abschnitte if a.bericht and a.bericht.ersatz)}
-        finally:
-            shutil.rmtree(ordner, ignore_errors=True)
-
+    phasen = [Phase(schluessel="vorbereiten", titel="Vorbereiten", symbol="box-open"),
+              Phase(schluessel="uebersetzen", titel="Übersetzen", symbol="language"),
+              Phase(schluessel="sprechen", titel="Sprechen", symbol="microphone"),
+              Phase(schluessel="ablegen", titel="Ablegen", symbol="cloud-arrow-up")]
     return [
+        Art("dienst_vertonen", "Vertonen für eine App", dienst_vertonen, eingabe=DienstEingabe, fortsetzbar=True,
+            nach_neustart="fortsetzen", phasen=phasen),
         Art("vertonen", "Vertonen", vertonen, eingabe=VertonenEingabe, fortsetzbar=True, nach_neustart="fortsetzen",
-            phasen=[Phase(schluessel="vorbereiten", titel="Vorbereiten", symbol="box-open"),
-                    Phase(schluessel="uebersetzen", titel="Übersetzen", symbol="language"),
-                    Phase(schluessel="sprechen", titel="Sprechen", symbol="microphone"),
-                    Phase(schluessel="ablegen", titel="Ablegen", symbol="cloud-arrow-up")]),
+            phasen=phasen),
     ]
 
 

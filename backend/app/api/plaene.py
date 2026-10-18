@@ -186,6 +186,13 @@ def router(teile: Teile) -> APIRouter:
                               sprecher=list(dict.fromkeys(g.sprecher or "Sprecher" for g in gruppen)), abschnitte=len(gruppen),
                               dauer_s=float(dauer) if isinstance(dauer, (int, float)) else None)
 
+    @r.post("/quelle/{knoten_id}/transkribieren")
+    async def transkribieren_lassen(knoten_id: UUID, anfrage: UUID | None = None, konto: Konto = g.pflicht) -> dict:
+        """Kein Transkript neben der Aufnahme: das Transkribieren an die Transkription weitergeben (eine Anfrage der
+        Kellerwolke an sie; das Transkript kommt neben die Aufnahme)."""
+        neu = await teile.zugang(anfrage).weitergeben(teile.einstellungen.transkription_app, "transkribieren", knoten_id)
+        return {"anfrage": str(neu.anfrage.id)}
+
     @r.get("/quelle/{knoten_id}/plan")
     async def plan_zur_datei(knoten_id: UUID, anfrage: UUID | None = None) -> dict:
         k = await teile.plaene_fuer(anfrage).zur_quelle(knoten_id)

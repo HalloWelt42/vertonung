@@ -135,9 +135,12 @@ class Werk:
 
 
 def ziel_format(art: str, format: str, mp3_bitrate: str, quelle: Tonformat | None) -> tuple[Tonformat, str]:
-    """(Format, Endung) des Ergebnisses: zeitgenau wie die Quelle (WAV), sonst wie eingestellt, mono 24 kHz."""
-    if art == "zeitgenau" or format == "wie_quelle":
+    """(Format, Endung) des Ergebnisses: zeitgenau in Rate und Kanälen der Quelle (WAV, oder AAC als M4A für lange
+    Videos), sonst wie eingestellt, mono 24 kHz."""
+    if art == "zeitgenau" or format in ("wie_quelle", "m4a"):
         q = quelle or Tonformat(rate=RATE, kanaele=1, kodierung="pcm_s16le")
+        if format == "m4a":
+            return Tonformat(rate=q.rate, kanaele=q.kanaele, kodierung="aac", bitrate="192k"), ".m4a"
         return Tonformat(rate=q.rate, kanaele=q.kanaele, kodierung="pcm_s16le"), ".wav"
     return {
         "mp3": (Tonformat(rate=RATE, kanaele=1, kodierung="libmp3lame", bitrate=mp3_bitrate), ".mp3"),

@@ -5,6 +5,7 @@ Klonstimme. Am Ende alles in den Papierkorb (Dateien vor Ordnern) und Aktionen z
 
 import asyncio
 import io
+import json
 from pathlib import Path
 
 import httpx
@@ -127,6 +128,26 @@ async def test_ganzer_weg(tmp_path: Path):
                 datei.write_bytes(wav.content)
                 e = await Ton().eigenschaften(datei)
                 assert (e.rate, e.kanaele) == (48000, 2) and e.dauer_s >= 12.0
+
+                # Dienst für andere Apps: Aufnahme mit englischen Segmenten zweier Sprecher, Ergebnis als M4A wie die Quelle
+                segmente = [{"start": 0.5, "ende": 2.5, "text": "Good evening.", "sprecher": "Host"},
+                            {"start": 3.0, "ende": 6.0, "text": "Thanks for having me.", "sprecher": "Gast"}]
+                r = await c.post("/api/v1/dienst/vertonen", headers=h,
+                                 files={"datei": ("Dienst Probe.wav", ton_stereo(10.0), "audio/wav")},
+                                 data={"name": "Verbundtest Dienst", "ausgangssprache": "en", "sprache": "de", "format": "m4a",
+                                       "segmente": json.dumps(segmente), "stimme": json.dumps({"art": "katalog", "name": "aiden"})})
+                assert r.status_code == 201, r.text
+                dienst = (await fertig(c, h, r.json()["id"]))["ergebnis"]
+                dp = (await c.get(f"/api/v1/plaene/{dienst['plan_id']}", headers=h)).json()
+                angelegt.append(dp["haupt_id"])
+                angelegt.append((await kw.pfad(f"{zweig}/Dienst")).id)
+                assert [x["text"] for x in dp["plan"]["abschnitte"]] == ["DE: Good evening.", "DE: Thanks for having me."]
+                assert [x["name"] for x in dp["plan"]["rollen"]] == ["Host", "Gast"] and dp["haupt_pfad"].endswith("Dienst/Direkt/Verbundtest Dienst.wav")
+                m4a = await c.get(f"/api/v1/inhalt/plaene/{dienst['plan_id']}/ergebnis", headers=h)
+                datei = tmp_path / "dienst.m4a"
+                datei.write_bytes(m4a.content)
+                e = await Ton().eigenschaften(datei)
+                assert (e.rate, e.kanaele, e.kodierung) == (48000, 2, "aac") and e.dauer_s >= 10.0
 
                 v = (await c.get("/api/v1/plaene", headers=h)).json()
                 assert {"Verbundtest Brief", "Verbundtest Szene"} <= {e["name"] for e in v["eintraege"]}

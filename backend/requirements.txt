@@ -2,3 +2,4 @@ appkern[web,ton] @ https://github.com/HalloWelt42/appkern/archive/90d3f9873bcb17
 uvicorn[standard]>=0.30
 pytest>=8
 pytest-asyncio>=0.24
+python-multipart>=0.0.9

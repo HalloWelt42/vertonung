@@ -14,13 +14,14 @@ from appkern.kellerwolke import Knoten, pfad_aus
 STIMMEN = "Stimmen"
 BEREICH_ORDNER = {"privat": "Privat", "fremd": "Fremd"}
 TEXTE = "Texte"
+DIENST = "Dienst"            # Aufnahmen, die andere Apps zum Vertonen schicken: Dienst/<App>/
 
 ROLLE_STIMME, ZUSATZ_STIMME = "stimme", ".stimme.json"
 ROLLE_QUELLE = "quelle"
 ROLLE_PLAN, ZUSATZ_PLAN = "vertonung", ".vertonung.json"
 ROLLE_SPRACHE = "sprache"
 JSON = "application/json"
-TONTYPEN = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".flac": "audio/flac", ".ogg": "audio/ogg"}
+TONTYPEN = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".flac": "audio/flac", ".ogg": "audio/ogg", ".m4a": "audio/mp4"}
 TEXTTYPEN = ("text/plain", "text/markdown")
 
 _UNERLAUBT = re.compile(r'[/\\:*?"<>|\x00-\x1f]+')

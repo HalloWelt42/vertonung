@@ -26,6 +26,9 @@
   let vorschau = $state<Vorschau | null>(null);
   let fehler = $state("");
   let legtAn = $state(false);
+  let ohneText = $state<string | null>(null);      // Aufnahme ohne Transkript: ihre Kennung
+  let transkribiert = $state(false);               // an die Transkription weitergegeben, wartet auf das Transkript
+  let warteTakt: ReturnType<typeof setInterval> | undefined;
   let kette = $state<WahlSeite["kette"]>([]);
   const FORMATE: { wert: Format; titel: string }[] = [
     { wert: "mp3", titel: "MP3, 24 kHz mono" }, { wert: "wav", titel: "WAV, 24 kHz mono" },
@@ -40,21 +43,44 @@
     void api.einstellungWert<string>("stimme_vorgabe").then((v) => { if (v) stimme = { art: "katalog", name: v }; }).catch(() => {});
     void api.einstellungWert<Format>("format").then((v) => { if (v) format = v; }).catch(() => {});
     void api.einstellungWert<string>("sprache").then((v) => { if (v) sprache = v; }).catch(() => {});
-    if (anfrage) {
-      void (async () => {
-        try {
-          const a = await anfrageHolen(anfrage);
-          vorschau = await api.quelle(a.knoten_id, anfrage);
-          name = vorschau.name.replace(/\.[^.]+$/, "");
-          if (vorschau.sprache) ausgang = vorschau.sprache;
-          if (vorschau.text) text = vorschau.text;
-        } catch (f) {
-          fehler = (f as Error).message;
-        }
-      })();
-    }
+    if (anfrage) void vorschauLaden();
     if (geraet.mobil) navigation.titel = ARTEN[art].titel;
+    return () => clearInterval(warteTakt);
   });
+
+  async function vorschauLaden() {
+    if (!anfrage) return;
+    try {
+      const a = await anfrageHolen(anfrage);
+      try {
+        vorschau = await api.quelle(a.knoten_id, anfrage);
+      } catch (f) {
+        if (!(f as Error).message.includes("kein Transkript")) throw f;
+        ohneText = a.knoten_id;
+        return;
+      }
+      ohneText = null;
+      clearInterval(warteTakt);
+      transkribiert = false;
+      name = vorschau.name.replace(/\.[^.]+$/, "");
+      if (vorschau.sprache) ausgang = vorschau.sprache;
+      if (vorschau.text) text = vorschau.text;
+    } catch (f) {
+      fehler = (f as Error).message;
+    }
+  }
+
+  async function transkribierenLassen() {
+    if (!ohneText) return;
+    fehler = "";
+    try {
+      await api.transkribierenLassen(ohneText, anfrage);
+      transkribiert = true;
+      warteTakt = setInterval(() => void vorschauLaden(), 10000);
+    } catch (f) {
+      fehler = (f as Error).message;
+    }
+  }
 
   async function anlegen() {
     legtAn = true;
@@ -75,22 +101,21 @@
     }
   }
 
-  // Zeitgenau aus der Kellerwolke: wählbar ist Ton und Video mit Transkript oder Untertiteln daneben
-  const ROLLEN_TEXT = ["transkript", "untertitel", "untertitel_vtt"];
+  // Zeitgenau aus der Kellerwolke: wählbar ist Ton und Video; ohne Transkript daneben legt es die Transkription an
   const zweck: WahlZweck = {
     auftrag: "vertonen",
     quelle: (a) => String(a.eingabe.plan_id),
     ergebnis: ["vertonung"],
     einzeln: true,
-    waehlbar: (e: WahlEintrag, begleiter: WahlEintrag[]) => istMedium(e.inhaltstyp) && begleiter.some((b) => ROLLEN_TEXT.includes(b.rolle ?? "")),
+    waehlbar: (e: WahlEintrag) => istMedium(e.inhaltstyp),
     ordnerAdresse: (id) => `vertonen/neu/zeitgenau/kellerwolke/${id}`,
     woerter: {
-      tun: "Weiter", symbol: "fa-clock", fertig: "vertont", offen: "mit Transkript", gruppe: "Ton und Video mit Transkript",
-      leer: "Hier liegt kein Ton und kein Video mit Transkript.", andere: "ohne Transkript",
-      nichtWaehlbar: "Neu sprechen geht mit Ton oder Video, neben dem ein Transkript oder Untertitel liegen",
+      tun: "Weiter", symbol: "fa-clock", fertig: "vertont", offen: "noch nicht vertont", gruppe: "Ton und Video",
+      leer: "Hier liegt kein Ton und kein Video.", andere: "kein Ton",
+      nichtWaehlbar: "Neu sprechen geht mit Ton und Video",
       hinweis: "Hier siehst du nur Namen. Lesen darf die App eine Aufnahme und ihr Transkript erst, wenn du sie wählst. Plan und neue Sprache liegen danach neben ihr.",
       hinweisKurz: "Lesen darf die App nur, was du wählst.",
-      anleitung: "Eine Aufnahme mit Transkript anklicken, dann Weiter: je Sprecher eine Stimme wählen.",
+      anleitung: "Eine Aufnahme anklicken, dann Weiter: je Sprecher eine Stimme wählen (fehlt das Transkript, legt es die Transkription an).",
     },
     starten: async (ids) => {
       const { anfrage: a } = await waehlen(ids[0], "neu_sprechen");
@@ -136,6 +161,13 @@
   {/if}
   <div class="rollfeld" style="max-width:1020px">
     {#if fehler}<div class="fehlertext" style="margin-bottom:12px">{fehler}</div>{/if}
+    {#if ohneText}
+      <div class="hinweis-band"><i class="fa-solid {transkribiert ? 'fa-circle-notch fa-spin' : 'fa-closed-captioning'}"></i>
+        <span>{transkribiert ? "Die Transkription arbeitet; sobald das Transkript neben der Aufnahme liegt, geht es hier weiter." :
+          "Neben dieser Aufnahme liegt noch kein Transkript und keine Untertitel. Die Transkription kann es anlegen."}</span>
+        {#if !transkribiert}<span class="knopfzeile"><button class="knopf primaer" onclick={transkribierenLassen}><i class="fa-solid fa-closed-captioning"></i> Transkribieren lassen</button></span>{/if}
+      </div>
+    {/if}
     {#if vorschau && art === "zeitgenau"}
       <div class="hinweis-band"><i class="fa-solid fa-file-audio"></i><span><b>{vorschau.name}</b> · {vorschau.textquelle ?? "Transkript"} ·
         {vorschau.abschnitte} Abschnitte · {vorschau.sprecher.length} Sprecher · das Ergebnis kommt als WAV in Rate und Kanälen der Aufnahme daneben</span></div>
