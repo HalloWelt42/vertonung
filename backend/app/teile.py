@@ -3,16 +3,21 @@ Ton. Aufträge und Schnittstelle bekommen dieses eine Objekt statt vieler einzel
 
 from __future__ import annotations
 
+import asyncio
+import logging
+import shutil
+
 from pathlib import Path
 from uuid import UUID
 
 from appkern.anmeldung import Konto
 from appkern.app import Begleiter, Geruest
-from appkern.kellerwolke import Kellerwolke
+from appkern.kellerwolke import Kellerwolke, NichtGefunden
 from appkern.ton import Ton
 
 from .ablage.plaene import Plaene
 from .ablage.stimmen import Stimmen, zugang
+from .dienstablage import Ablage, DienstAblage
 from .einstellungen import AppEinstellungen
 from .modell.plan import StimmWahl
 from .modell.stimme import Stimme
@@ -26,6 +31,9 @@ class KeinRechtAufStimme(Exception):
     """Eine fremde App wollte eine private Stimme nutzen, ohne auf der Erlaubnisliste zu stehen."""
 
 
+FRISTEN_TAKT_S = 3600
+
+
 class Teile(Begleiter):
     def __init__(self, geruest: Geruest[AppEinstellungen]) -> None:
         self.geruest = geruest
@@ -34,14 +42,46 @@ class Teile(Begleiter):
         self.plaene = Plaene(lambda: geruest.kellerwolke)
         self.verzeichnis = Verzeichnis(geruest.db)
         self.tempo = Sprechtempo(geruest.db, lambda: e().sprechtempo)
+        self.dienstablage = DienstAblage(geruest.db)
+        self._fristen: asyncio.Task | None = None
         self.dienst = Sprechdienst(lambda: geruest.leitstelle, lambda: (e().dienst_sprechen, e().dienst_klonen))
 
     async def starten(self) -> None:
         await self.verzeichnis.einrichten()
         await self.tempo.einrichten()
+        await self.dienstablage.einrichten()
+        self._fristen = asyncio.create_task(self._fristen_wahren())
 
     async def stoppen(self) -> None:
-        return None
+        if self._fristen:
+            self._fristen.cancel()
+
+    async def dienst_wegraeumen(self, a: Ablage) -> None:
+        """Aufnahme eines Dienstauftrags samt Begleitern (Transkript, Plan, Ergebnis) in den Papierkorb der Kellerwolke,
+        dazu Eintrag im Verzeichnis und Zwischenspeicher des Plans."""
+        try:
+            await self.zugang().loeschen(a.haupt_id)
+        except NichtGefunden:
+            pass                                   # schon weg (etwa von Hand)
+        if a.plan_id:
+            await self.verzeichnis.entfernen(a.plan_id)
+            shutil.rmtree(self.speicher(a.plan_id), ignore_errors=True)
+        await self.dienstablage.austragen(a.auftrag_id)
+
+    async def _fristen_wahren(self) -> None:
+        """Stündlich: was nicht bleiben soll und nicht abgeholt wurde, nach der Frist wegräumen (nie, solange der
+        Auftrag noch läuft)."""
+        while True:
+            await asyncio.sleep(FRISTEN_TAKT_S)
+            try:
+                for a in await self.dienstablage.faellige():
+                    if (await self.geruest.auftraege.holen(a.auftrag_id)).zustand in ("wartet", "laeuft"):
+                        continue
+                    await self.dienst_wegraeumen(a)
+            except asyncio.CancelledError:
+                raise
+            except Exception:  # noqa: BLE001 - die Kellerwolke kann kurz fehlen; in einer Stunde wieder
+                logging.getLogger("vertonung").warning("Dienstablage: Wegräumen nach Frist gescheitert", exc_info=True)
 
     @property
     def einstellungen(self) -> AppEinstellungen:

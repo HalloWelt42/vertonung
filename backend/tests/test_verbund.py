@@ -135,9 +135,11 @@ async def test_ganzer_weg(tmp_path: Path):
                 r = await c.post("/api/v1/dienst/vertonen", headers=h,
                                  files={"datei": ("Dienst Probe.wav", ton_stereo(10.0), "audio/wav")},
                                  data={"name": "Verbundtest Dienst", "ausgangssprache": "en", "sprache": "de", "format": "m4a",
-                                       "segmente": json.dumps(segmente), "stimme": json.dumps({"art": "katalog", "name": "aiden"})})
+                                       "segmente": json.dumps(segmente), "stimme": json.dumps({"art": "katalog", "name": "aiden"}),
+                                       "behalten": "false"})
                 assert r.status_code == 201, r.text
-                dienst = (await fertig(c, h, r.json()["id"]))["ergebnis"]
+                dienst_auftrag = r.json()["id"]
+                dienst = (await fertig(c, h, dienst_auftrag))["ergebnis"]
                 assert (dienst["sprache"], dienst["ausgangssprache"]) == ("de", "en")
                 dp = (await c.get(f"/api/v1/plaene/{dienst['plan_id']}", headers=h)).json()
                 angelegt.append(dp["haupt_id"])
@@ -149,6 +151,13 @@ async def test_ganzer_weg(tmp_path: Path):
                 datei.write_bytes(m4a.content)
                 e = await Ton().eigenschaften(datei)
                 assert (e.rate, e.kanaele, e.kodierung) == (48000, 2, "aac") and e.dauer_s >= 10.0
+                assert m4a.content.index(b"moov") < m4a.content.index(b"mdat")      # Inhaltsverzeichnis vorn
+                # der Sender wollte nicht behalten: nach dem Abholen liegt alles im Papierkorb, Plan und Eintrag sind weg
+                r = await c.post(f"/api/v1/dienst/{dienst_auftrag}/abgeholt", headers=h)
+                assert r.status_code == 200 and r.json() == {"behalten": False}
+                angelegt.remove(dp["haupt_id"])
+                assert (await c.get(f"/api/v1/plaene/{dienst['plan_id']}", headers=h)).status_code == 404
+                assert (await c.post(f"/api/v1/dienst/{dienst_auftrag}/abgeholt", headers=h)).status_code == 404
 
                 v = (await c.get("/api/v1/plaene", headers=h)).json()
                 assert {"Verbundtest Brief", "Verbundtest Szene"} <= {e["name"] for e in v["eintraege"]}

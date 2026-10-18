@@ -103,6 +103,7 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
                                           await teile.stimmen_namen([r.stimme for r in plan.rollen]))
         plan_id = str(knoten.id)
         await k.merken(plan_id=plan_id)
+        await teile.dienstablage.plan_merken(k.auftrag_id, plan_id)
     ergebnis = await plan_ausfuehren(teile, k, UUID(plan_id), None)
     return {**ergebnis, "plan_id": plan_id}
 

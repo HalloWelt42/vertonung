@@ -1,6 +1,8 @@
 """Vertonung als Dienst für andere Apps (App-Schlüssel der Kellerwolke): eine Aufnahme hochladen, auf Wunsch mit
 Segmenten (Start, Ende, Text, Sprecher), Sprachen und Stimme; zurück kommt der Auftrag. Sein Ergebnis nennt den Plan;
-der Ton liegt dann unter /api/v1/inhalt/plaene/<plan>/ergebnis (zeitgenau, so lang wie die Aufnahme)."""
+der Ton liegt dann unter /api/v1/inhalt/plaene/<plan>/ergebnis (zeitgenau, so lang wie die Aufnahme). Ob Aufnahme, Plan
+und Ergebnis in der Kellerwolke bleiben, bestimmt der Sender (`behalten`); ohne meldet er nach dem Herunterladen
+`POST /dienst/<auftrag>/abgeholt`, spätestens nach der Frist räumt die Vertonung selbst weg."""
 
 from __future__ import annotations
 
@@ -10,7 +12,7 @@ import uuid
 from typing import Literal
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from pydantic import TypeAdapter, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from appkern.anmeldung import Konto
 from appkern.app import von
@@ -23,6 +25,10 @@ from ..teile import Teile
 SEGMENTE = TypeAdapter(list[DienstSegment])
 
 
+class Abgeholt(BaseModel):
+    behalten: bool                  # true: bleibt in der Kellerwolke; false: liegt jetzt im Papierkorb
+
+
 def router(teile: Teile) -> APIRouter:
     g = teile.geruest
     r = APIRouter(prefix="/api/v1", tags=["dienst"], dependencies=[g.pflicht])
@@ -32,7 +38,10 @@ def router(teile: Teile) -> APIRouter:
                        sprache: str = Form("de"), ausgangssprache: str | None = Form(None),
                        stimme: str | None = Form(None, description='JSON wie {"art": "katalog", "name": "serena"}'),
                        segmente: str | None = Form(None, description="JSON-Liste mit start, ende, text, sprecher"),
-                       format: Literal["wie_quelle", "m4a"] = Form("m4a"), konto: Konto = g.pflicht) -> Auftrag:
+                       format: Literal["wie_quelle", "m4a"] = Form("m4a"),
+                       behalten: bool = Form(True, description="false: nach dem Abholen in den Papierkorb, spätestens "
+                                                               "48 Stunden nach dem Hochladen"),
+                       konto: Konto = g.pflicht) -> Auftrag:
         try:
             wahl = StimmWahl.model_validate_json(stimme) if stimme else None
             stuecke = SEGMENTE.validate_json(segmente) if segmente else None
@@ -53,6 +62,21 @@ def router(teile: Teile) -> APIRouter:
             shutil.rmtree(ordner, ignore_errors=True)
         eingabe = DienstEingabe(haupt_id=haupt.id, name=name, ausgangssprache=ausgangssprache, sprache=sprache, stimme=wahl,
                                 format=format, von=von(konto))
-        return await g.auftraege.einreihen("dienst_vertonen", eingabe, titel=f"{name} ({konto.app or 'direkt'})")
+        auftrag = await g.auftraege.einreihen("dienst_vertonen", eingabe, titel=f"{name} ({konto.app or 'direkt'})")
+        await teile.dienstablage.eintragen(auftrag.id, haupt.id, konto.app or "Direkt", behalten)
+        return auftrag
+
+    @r.post("/dienst/{auftrag_id}/abgeholt", response_model=Abgeholt)
+    async def abgeholt(auftrag_id: str, konto: Konto = g.pflicht) -> Abgeholt:
+        """Der Sender hat das Ergebnis; hat er beim Hochladen nicht behalten gewählt, geht jetzt alles in den Papierkorb."""
+        a = await teile.dienstablage.eine(auftrag_id)
+        if a is None or (not konto.mensch and (konto.app or "Direkt") != a.app):
+            raise HTTPException(404, "Diesen Dienstauftrag gibt es nicht (mehr)")
+        if a.behalten:
+            return Abgeholt(behalten=True)
+        if (await g.auftraege.holen(auftrag_id)).zustand in ("wartet", "laeuft"):
+            raise HTTPException(409, "Der Auftrag läuft noch")
+        await teile.dienst_wegraeumen(a)
+        return Abgeholt(behalten=False)
 
     return r
