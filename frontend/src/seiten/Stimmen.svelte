@@ -3,7 +3,7 @@
   // Referenztext, Herkunft). Neu aus einer hochgeladenen Probe oder mit dem Rekorder aufgenommen. Private Stimmen
   // gehören Menschen aus dem Umfeld: nur für erlaubte Apps, nie für Öffentliches. Entwurf: mockups/vertonung.html (5).
   import { onMount } from "svelte";
-  import { aufnahme, aufnehmen, Auswahl, geraet, Leiste, leisteOeffnen, Rekorder, Rueckfrage, type NachDerAufnahme } from "appkern-oberflaeche";
+  import { aufnahme, aufnehmen, Auswahl, einzelton, geraet, Leiste, leisteOeffnen, Rekorder, Rueckfrage, type NachDerAufnahme } from "appkern-oberflaeche";
   import * as api from "../lib/api";
   import { stimmenLaden } from "../lib/stimmen.svelte";
   import type { Bereich, Stimme, StimmAngaben, StimmBereich } from "../lib/typen";
@@ -17,7 +17,9 @@
   let angaben = $state<StimmAngaben | null>(null);
   let bekannt = $state("");
   let loeschFrage = $state(false);
-  let spielt = $state<string | null>(null);
+  // Probe anhören über den gemeinsamen Ton (startet im Tippen, hält sicher an, auch am iPhone)
+  const spielt = $derived(einzelton.kennung?.startsWith("probe:") ? einzelton.kennung.slice(6) : null);
+  const anhoeren = (s: Stimme) => einzelton.umschalten(`probe:${s.id}`, api.probeAdresse(s.id));
   let datei = $state<HTMLInputElement>();
   const BEREICHE: { wert: Bereich; titel: string }[] = [{ wert: "privat", titel: "Privat" }, { wert: "fremd", titel: "Fremd" }];
 
@@ -116,7 +118,7 @@
   <div class="gruppe">
     <h3>Probe</h3>
     {#if s.bereich !== "katalog"}
-      <div class="knopfreihe"><button class="knopf" onclick={() => (spielt = spielt === s.id ? null : s.id)}>
+      <div class="knopfreihe"><button class="knopf" onclick={() => anhoeren(s)}>
         <i class="fa-solid {spielt === s.id ? 'fa-pause' : 'fa-play'}"></i> {spielt === s.id ? "Anhalten" : "Anhören"}{s.dauer_s ? ` (${s.dauer_s.toFixed(1).replace(".", ",")} s)` : ""}</button></div>
     {:else}<p class="leer" style="text-align:left; padding:0">Feste Stimme des Sprechdienstes, ohne eigene Probe.</p>{/if}
   </div>
@@ -158,7 +160,7 @@
         s.angaben?.bekannt_als.length ? `bekannt als ${s.angaben.bekannt_als.join(", ")}` : "", s.bereich === "katalog" ? "feste Stimme" : ""].filter(Boolean).join(" · ")}</div></div>
     <span></span>
     {#if s.bereich !== "katalog"}
-      <button class="rund" title={spielt === s.id ? "Anhalten" : "Probe anhören"} onclick={(k) => { k.stopPropagation(); spielt = spielt === s.id ? null : s.id; }}>
+      <button class="rund" title={spielt === s.id ? "Anhalten" : "Probe anhören"} onclick={(k) => { k.stopPropagation(); anhoeren(s); }}>
         <i class="fa-solid {spielt === s.id ? 'fa-pause' : 'fa-play'}"></i></button>
     {:else}<span></span>{/if}
   </div>
@@ -199,9 +201,10 @@
   {:else}
     <div class="t-liste" style="margin-top:12px">
       {#each sichtbar as s (s.id)}
-        <button class="t-zeile" onclick={() => waehlen(s)}><i class="fa-solid fa-user"></i>
+        <div class="t-zeile" role="button" tabindex="0" onclick={() => waehlen(s)} onkeydown={(k) => k.key === "Enter" && waehlen(s)}><i class="fa-solid fa-user"></i>
           <span class="t-text"><span class="t-name">{s.name}</span><span class="t-meta">{s.dauer_s ? `${s.dauer_s.toFixed(1).replace(".", ",")} s` : "feste Stimme"}</span></span>
-          {#if s.bereich !== "katalog"}<i class="fa-solid {spielt === s.id ? 'fa-pause' : 'fa-play'}" style="color:var(--akzent)"></i>{/if}</button>
+          {#if s.bereich !== "katalog"}<button class="rund" title={spielt === s.id ? "Anhalten" : "Probe anhören"}
+            onclick={(k) => { k.stopPropagation(); anhoeren(s); }}><i class="fa-solid {spielt === s.id ? 'fa-pause' : 'fa-play'}"></i></button>{/if}</div>
       {:else}<div class="leer">Hier gibt es noch keine Stimme.</div>{/each}
     </div>
     <div class="knopfzeile" style="margin-top:14px">{@render kopfKnoepfe()}</div>
@@ -234,4 +237,3 @@
     </Leiste>
   </div>
 {/if}
-{#if spielt}<audio src={api.probeAdresse(spielt)} autoplay onended={() => (spielt = null)} onpause={() => (spielt = null)} hidden></audio>{/if}

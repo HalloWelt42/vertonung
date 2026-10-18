@@ -3,7 +3,7 @@
   // vertonen/neu/<art>[/anfrage/<id>] (anlegen), vertonen/neu/zeitgenau/kellerwolke[/<ordner>] (Aufnahme wählen),
   // vertonen/<plan>[/anfrage/<id>] (Plan). Entwurf: mockups/vertonung.html (1) und vertonung-mobil.html (2).
   import { onMount } from "svelte";
-  import { beiAuftrag, gehe, geraet, hole, marke, navigation, wann, type Auftrag, type Seite } from "appkern-oberflaeche";
+  import { beiAuftrag, einzelton, gehe, geraet, hole, marke, navigation, wann, type Auftrag, type Seite } from "appkern-oberflaeche";
   import * as api from "../lib/api";
   import { ARTEN, type Art, type Eintrag, type Verzeichnis } from "../lib/typen";
   import Neu from "../teile/Neu.svelte";
@@ -21,7 +21,9 @@
   let ab = $state(0);
   let fehler = $state("");
   let laufend = $state<Record<string, Auftrag>>({});
-  let spielt = $state<string | null>(null);
+  // Ergebnis anhören über den gemeinsamen Ton (startet im Tippen, hält sicher an, auch am iPhone)
+  const spielt = $derived(einzelton.kennung?.startsWith("ergebnis:") ? einzelton.kennung.slice(9) : null);
+  const anhoeren = (e: Eintrag) => einzelton.umschalten(`ergebnis:${e.id}`, api.ergebnisAdresse(e.id, e.anfrage_id));
 
   async function laden() {
     fehler = "";
@@ -96,7 +98,7 @@
   {:else if e.ergebnis_id && e.offen}
     <button class="knopf still" onclick={(k) => { k.stopPropagation(); oeffnen(e); }}><i class="fa-solid fa-microphone"></i> Geänderte sprechen</button>
   {:else if e.ergebnis_id}
-    <button class="knopf still" onclick={(k) => { k.stopPropagation(); spielt = spielt === e.id ? null : e.id; }}>
+    <button class="knopf still" onclick={(k) => { k.stopPropagation(); anhoeren(e); }}>
       <i class="fa-solid {spielt === e.id ? 'fa-pause' : 'fa-play'}"></i> {spielt === e.id ? "Anhalten" : "Anhören"}</button>
   {:else}<span></span>{/if}
 {/snippet}
@@ -128,7 +130,7 @@
         {#if e.offen && e.ergebnis_id}<span class="stand-pille warn">geändert</span>{/if}
         {#if e.ergebnis_id}
           <button class="rund" title={spielt === e.id ? "Anhalten" : "Anhören"}
-                  onclick={(k) => { k.stopPropagation(); spielt = spielt === e.id ? null : e.id; }}>
+                  onclick={(k) => { k.stopPropagation(); anhoeren(e); }}>
             <i class="fa-solid {spielt === e.id ? 'fa-pause' : 'fa-play'}"></i></button>
         {:else}<i class="fa-solid fa-chevron-right" style="color:var(--text-3)"></i>{/if}
       </div>
@@ -174,4 +176,3 @@
       {/if}
     </div>
 {/if}
-{#if spielt}<audio src={api.ergebnisAdresse(spielt, liste?.eintraege.find((e) => e.id === spielt)?.anfrage_id)} autoplay onended={() => (spielt = null)} onpause={() => (spielt = null)} hidden></audio>{/if}

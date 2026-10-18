@@ -4,7 +4,7 @@
   // Zeitgenau: Spur der Quelle und der neuen Sprache in einem Ausschnitt, Filter auf Abschnitte mit Hinweis.
   // Entwurf: mockups/vertonung.html (2, 3, 4).
   import { onMount } from "svelte";
-  import { Auswahl, gehe, geraet, inKellerwolke, Leiste, leisteOeffnen, marke, navigation, Spieler, type Auftrag } from "appkern-oberflaeche";
+  import { Auswahl, einzelton, gehe, geraet, inKellerwolke, Leiste, leisteOeffnen, marke, navigation, Spieler, type Auftrag } from "appkern-oberflaeche";
   import * as api from "../lib/api";
   import { stimmenLaden, stimmenListe } from "../lib/stimmen.svelte";
   import { ARTEN, type Abschnitt, type Format, type Plan, type PlanAntwort } from "../lib/typen";
@@ -17,7 +17,11 @@
   let sendet = $state(false);
   let bearbeitet = $state<number | null>(null);
   let entwurf = $state("");
-  let spielt = $state<number | null>(null);
+  // Abschnitt anhören über den gemeinsamen Ton (startet im Tippen, hält sicher an, auch am iPhone)
+  const spielt = $derived.by(() => {
+    const k = einzelton.kennung;
+    return k?.startsWith(`abschnitt:${id}:`) ? Number(k.split(":")[2]) : null;
+  });
   let nurHinweise = $state(false);
   let zeit = $state(0);
   const FORMATE: { wert: Format; titel: string }[] = [
@@ -154,7 +158,7 @@
           {#each hinweisPillen(a) as h (h.text)}<span class="stand-pille {h.klasse}">{h.text}</span>{/each}
           </div>
           <button class="rund" title={spielt === a.nr ? "Anhalten" : s?.stand === "geaendert" ? "Alte Fassung anhören" : "Anhören"}
-                  disabled={s?.stand === "offen"} onclick={() => (spielt = spielt === a.nr ? null : a.nr)}>
+                  disabled={s?.stand === "offen"} onclick={() => einzelton.umschalten(`abschnitt:${id}:${a.nr}`, api.abschnittAdresse(id, a.nr, s?.stand))}>
             <i class="fa-solid {spielt === a.nr ? 'fa-pause' : 'fa-play'}"></i></button>
         </div>
         <div class="satz">
@@ -279,7 +283,4 @@
       <div class="rollfeld leiste-inhalt">{@render leisteInhalt(plan)}</div>
     </Leiste>
   </div>
-{/if}
-{#if spielt !== null}
-  <audio src={api.abschnittAdresse(id, spielt, staende[spielt]?.stand)} autoplay onended={() => (spielt = null)} onpause={() => (spielt = null)} hidden></audio>
 {/if}
