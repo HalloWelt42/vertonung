@@ -91,6 +91,7 @@ class Ergebnis(BaseModel):
     pfad: str
     dauer_s: float
     erstellt_am: datetime
+    wellenform: list[int] = Field(default_factory=list)   # 0 bis 100 je Punkt, für den Spieler
 
 
 class Plan(BaseModel):

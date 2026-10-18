@@ -1,8 +1,10 @@
 {
   "seiten": [
-    { "name": "start", "pfad": "/start" },
-    { "name": "auftraege", "pfad": "/auftraege" },
-    { "name": "protokoll", "pfad": "/protokoll" },
+    { "name": "vertonen", "pfad": "/vertonen" },
+    { "name": "neu-vorlesen", "pfad": "/vertonen/neu/vorlesen" },
+    { "name": "neu-dialog", "pfad": "/vertonen/neu/dialog" },
+    { "name": "neu-zeitgenau", "pfad": "/vertonen/neu/zeitgenau/kellerwolke" },
+    { "name": "stimmen", "pfad": "/stimmen" },
     { "name": "einstellungen", "pfad": "/einstellungen" }
   ]
 }

@@ -80,7 +80,7 @@ export interface Plan {
   rollen: Rolle[];
   abschnitte: Abschnitt[];
   ziel: { format: Format | "wie_quelle" };
-  ergebnis: { knoten_id: string; pfad: string; dauer_s: number; erstellt_am: string } | null;
+  ergebnis: { knoten_id: string; pfad: string; dauer_s: number; erstellt_am: string; wellenform: number[] } | null;
   geaendert_am: string;
 }
 

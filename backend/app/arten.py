@@ -92,7 +92,9 @@ def arten(teile: Teile) -> list[Art]:
             await k.fortschritt(0.92, "Ablegen", phase="ablegen")
             erg = await plaene.ergebnis_ablegen(haupt_id, ziel)
             dauer_s = round(await teile.ton_jetzt.dauer(ziel), 2)
-            gelaufen.ergebnis = Ergebnis(knoten_id=erg.id, pfad=erg.pfad, dauer_s=dauer_s, erstellt_am=datetime.now(UTC))
+            welle = await teile.ton_jetzt.wellenform(ziel, 400)
+            gelaufen.ergebnis = Ergebnis(knoten_id=erg.id, pfad=erg.pfad, dauer_s=dauer_s, erstellt_am=datetime.now(UTC),
+                                         wellenform=welle)
             gelaufen.geaendert_am = datetime.now(UTC)
             for _ in range(3):
                 try:

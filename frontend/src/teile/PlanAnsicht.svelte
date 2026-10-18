@@ -216,7 +216,7 @@
     {@render zeilen()}
     {#if plan.ergebnis}
       <div class="t-spieler" style="display:block; padding:6px 16px">
-        <Spieler src={api.ergebnisAdresse(id, anfrage, plan.ergebnis.knoten_id + plan.geaendert_am)} dauer={plan.ergebnis.dauer_s} kompakt bind:zeit />
+        <Spieler src={api.ergebnisAdresse(id, anfrage, plan.ergebnis.knoten_id + plan.geaendert_am)} dauer={plan.ergebnis.dauer_s} wellenform={plan.ergebnis.wellenform} kompakt bind:zeit />
       </div>
     {/if}
   </div>
@@ -236,7 +236,7 @@
         </span>
       </div>
       {#if plan.ergebnis}
-        <Spieler src={api.ergebnisAdresse(id, anfrage, plan.ergebnis.knoten_id + plan.geaendert_am)} dauer={plan.ergebnis.dauer_s} bind:zeit />
+        <Spieler src={api.ergebnisAdresse(id, anfrage, plan.ergebnis.knoten_id + plan.geaendert_am)} dauer={plan.ergebnis.dauer_s} wellenform={plan.ergebnis.wellenform} bind:zeit />
       {/if}
       <div class="rollfeld" style="padding-top:14px">
         {#if fehler}<div class="fehlertext" style="margin-bottom:12px">{fehler}</div>{/if}
