@@ -1,7 +1,7 @@
 """Ausspracheprüfung: das Gesprochene eines Abschnitts wird über den Hördienst zurückgehört und Wort für Wort mit dem
 Text verglichen (Wortfehlerquote und die abweichenden Stellen). Das Hören kann selbst irren; die Quote ist ein Hinweis
 und eine Messgröße für die Optimierung, kein Urteil. Verglichen wird ohne Satzzeichen und ohne Groß- und Kleinschreibung.
-Geprüft wird nur, was dieser Lauf neu gesprochen hat."""
+Gehört wird das fertige Ergebnis, nicht der einzelne Abschnitt."""
 
 from __future__ import annotations
 
@@ -16,13 +16,12 @@ from appkern.ton import Ton, Tonformat
 
 from .modell.plan import Plan
 from .sprechfassung import sprechbar
-from .werk.werk import RATE, abschnitt_datei
+from .werk.fuegen import begrenzen
 
 HOEREN = Tonformat(rate=16000, kanaele=1, kodierung="pcm_s16le")    # was der Hördienst ohnehin rechnet
 HOECHSTENS_ABWEICHUNGEN = 8
 _ZEICHEN = re.compile(r"[^\w\s]", re.UNICODE)
 
-Hoeren = Callable[[Path, str], Awaitable[str]]
 
 
 @dataclass(frozen=True)
@@ -50,26 +49,76 @@ def abgleichen(soll: str, gehoert: str) -> Abgleich:
     return Abgleich(round(min(fehler / len(a), 1.0), 3), abweichungen[:HOECHSTENS_ABWEICHUNGEN])
 
 
-async def pruefen(vorher: Plan, gelaufen: Plan, speicher: Path, arbeit: Path, ton: Ton, hoeren: Hoeren) -> int:
-    """Prüft die frisch gesprochenen Abschnitte von `gelaufen` (Prüfsumme anders als in `vorher`) und trägt das Ergebnis
-    in ihren Bericht ein; liefert die Zahl der geprüften."""
-    alt = {a.nr: a.gesprochen_als for a in vorher.abschnitte}
+STUECK_S = 300.0      # so viel Ergebnis je Hör-Anfrage (geteilt an Abschnittsgrenzen)
+RAND_S = 0.15         # Spielraum, mit dem ein Wort an den Rändern eines Abschnitts noch zu ihm zählt
+
+
+@dataclass(frozen=True)
+class Spanne:
+    nr: int
+    von: float
+    bis: float
+
+
+def spannen(plan: Plan) -> list[Spanne]:
+    """Wo jeder gesprochene Abschnitt im Ergebnis liegt: zeitgenau an seiner Lage (Beginn plus Versatz, Länge
+    gestaucht), sonst nacheinander mit den Pausen dazwischen."""
+    aus, t = [], 0.0
+    for a in plan.abschnitte:
+        if not a.dauer_s:
+            continue
+        b = a.bericht
+        if plan.art == "zeitgenau":
+            von = (a.start or 0.0) + (b.versatz_s if b else 0.0)
+            laenge = a.dauer_s / (b.stauchung if b else 1.0)
+        else:
+            von, laenge = t, a.dauer_s
+            t += a.dauer_s + a.pause_danach_s
+        aus.append(Spanne(a.nr, round(von, 3), round(von + laenge, 3)))
+    return aus
+
+
+def stuecke(span: list[Spanne], gesamt_s: float, hoechstens_s: float = STUECK_S) -> list[tuple[float, float]]:
+    """Das Ergebnis in Hör-Stücke von höchstens `hoechstens_s`: geschnitten am spätesten Abschnittsbeginn, der noch
+    hineinpasst, sonst (lange Stille) nach `hoechstens_s`."""
+    beginne = [s.von for s in span]
+    aus, anfang = [], 0.0
+    while gesamt_s - anfang > hoechstens_s:
+        passend = [v for v in beginne if anfang < v <= anfang + hoechstens_s]
+        schnitt = max(passend) if passend else anfang + hoechstens_s
+        aus.append((anfang, schnitt))
+        anfang = schnitt
+    aus.append((anfang, gesamt_s))
+    return aus
+
+
+async def pruefen(gelaufen: Plan, ergebnis: Path, arbeit: Path, ton: Ton, hoeren: Callable[[Path, str], Awaitable[list]]) -> int:
+    """Hört das fertige Ergebnis (das, was man tatsächlich hört, samt Stauchung) in wenigen Stücken, ordnet die Wörter
+    über ihre Zeit den Abschnitten zu und trägt je Abschnitt Quote und Abweichungen in seinen Bericht ein. Wenige große
+    Anfragen statt einer je Abschnitt: der Hördienst hat ein Fach, jede Anfrage wartet sonst einzeln (K3, 18.10.2026)."""
+    span = spannen(gelaufen)
+    if not span:
+        return 0
+    sprache = gelaufen.sprache
     arbeit.mkdir(parents=True, exist_ok=True)
-    geprueft = 0
+    woerter: dict[int, list[str]] = {s.nr: [] for s in span}
     try:
-        for a in gelaufen.abschnitte:
-            if not a.gesprochen_als or a.gesprochen_als == alt.get(a.nr) or a.bericht is None:
-                continue
-            quelle = abschnitt_datei(speicher, a.nr, a.gesprochen_als)
-            if not quelle.is_file():
-                continue
-            datei = arbeit / f"hoeren-{a.nr:05d}.wav"
-            await ton.schreiben(await ton.lesen(quelle, RATE), RATE, datei, HOEREN)
-            # verglichen wird mit dem Gesprochenen; gehörte Ziffern werden nach denselben Regeln ausgeschrieben
-            gehoert = sprechbar(await hoeren(datei, gelaufen.sprache), gelaufen.sprache)
-            abgleich = abgleichen(a.gesprochen(gelaufen.sprache), gehoert)
-            a.bericht = a.bericht.model_copy(update={"aussprache": abgleich.quote, "abweichungen": abgleich.abweichungen})
-            geprueft += 1
+        werte = begrenzen(await ton.lesen(ergebnis, HOEREN.rate))
+        for i, (von, bis) in enumerate(stuecke(span, werte.size / HOEREN.rate)):
+            datei = arbeit / f"hoeren-{i}.wav"
+            await ton.schreiben(werte[int(von * HOEREN.rate): int(bis * HOEREN.rate)], HOEREN.rate, datei, HOEREN)
+            for w in await hoeren(datei, sprache):
+                mitte = von + (w.start + w.ende) / 2
+                nr = next((s.nr for s in span if s.von - RAND_S <= mitte <= s.bis + RAND_S), None)
+                if nr is not None:
+                    woerter[nr].append(w.wort)
     finally:
         shutil.rmtree(arbeit, ignore_errors=True)
+    geprueft = 0
+    for a in gelaufen.abschnitte:
+        if a.nr in woerter and a.bericht is not None:
+            # verglichen wird mit dem Gesprochenen; gehörte Ziffern werden nach denselben Regeln ausgeschrieben
+            abgleich = abgleichen(a.gesprochen(sprache), sprechbar(" ".join(woerter[a.nr]), sprache))
+            a.bericht = a.bericht.model_copy(update={"aussprache": abgleich.quote, "abweichungen": abgleich.abweichungen})
+            geprueft += 1
     return geprueft

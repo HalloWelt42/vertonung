@@ -144,8 +144,7 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
                 gelaufen = await sprechen(gelaufen, 0.88, 0.91)
         if einst.aussprache_pruefen and ls:
             await k.fortschritt(0.91, "Aussprache prüfen", phase="sprechen")
-            await aussprache.pruefen(plan, gelaufen, teile.speicher(plan_id), ordner / "aussprache", teile.ton_jetzt,
-                                     teile.hoeren_text)
+            await aussprache.pruefen(gelaufen, ziel, ordner / "aussprache", teile.ton_jetzt, teile.hoeren_woerter)
         await k.fortschritt(0.92, "Ablegen", phase="ablegen")
         erg = await plaene.ergebnis_ablegen(haupt_id, ziel)
         dauer_s = round(await teile.ton_jetzt.dauer(ziel), 2)

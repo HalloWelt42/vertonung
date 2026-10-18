@@ -20,3 +20,18 @@ def test_abweichungen_und_quote():
 def test_hinweis_ab_der_schwelle():
     assert not Bericht(aussprache=AUSSPRACHE_HINWEIS).mit_hinweis
     assert Bericht(aussprache=AUSSPRACHE_HINWEIS + 0.01).mit_hinweis and Bericht(versatz_s=0.4).mit_hinweis
+
+
+def test_spannen_und_hoerstuecke():
+    from app.aussprache import spannen, stuecke
+    from app.modell.plan import Bericht
+    from app.planen import Segment, aus_segmenten
+    from app.modell.plan import StimmWahl
+    seg = [Segment(0.0, 10.0, "Eins.", "A"), Segment(200.0, 210.0, "Zwei.", "A"), Segment(400.0, 405.0, "Drei.", "A")]
+    p = aus_segmenten("P", seg, {}, StimmWahl(art="katalog", name="serena"), quelle=None, quelle_dauer_s=420.0)
+    for a, (dauer, stauchung, versatz) in zip(p.abschnitte, [(12.0, 1.2, 0.0), (8.0, 1.0, 0.5), (5.0, 1.0, 0.0)]):
+        a.dauer_s, a.bericht = dauer, Bericht(stauchung=stauchung, versatz_s=versatz)
+    sp = spannen(p)
+    assert [(s.von, s.bis) for s in sp] == [(0.0, 10.0), (200.5, 208.5), (400.0, 405.0)]
+    assert stuecke(sp, 420.0) == [(0.0, 200.5), (200.5, 420.0)]          # je höchstens 300 s, am Abschnittsbeginn
+    assert stuecke(sp[:1], 700.0) == [(0.0, 300.0), (300.0, 600.0), (600.0, 700.0)]   # lange Stille: nach 300 s

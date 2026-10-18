@@ -78,9 +78,12 @@ class ScheinLeitstelle:
             roh = request.content[request.content.index(b"RIFF"):]
             with wave.open(io.BytesIO(roh)) as w:
                 dauer = w.getnframes() / w.getframerate()
-            text = min((t for _, t in self.aufrufe), key=lambda t: abs(max(0.4, len(t) / 15) - dauer), default="")
+            text = " ".join(t for _, t in self.aufrufe)          # alles Gesprochene, gleichmäßig über die Dauer
+            woerter = text.split() or [""]
+            schritt = dauer / len(woerter)
             return httpx.Response(200, json={"language": "de", "model": "schein", "segments": [
-                {"start": 0.0, "end": dauer, "text": text, "words": []}]})
+                {"start": 0.0, "end": dauer, "text": text, "words": [
+                    {"word": w, "start": i * schritt, "end": (i + 0.9) * schritt} for i, w in enumerate(woerter)]}]})
         if rest.startswith("tts/audio/") and rest.rsplit("/", 1)[1] in self.dateien:
             return httpx.Response(200, content=self.dateien[rest.rsplit("/", 1)[1]], headers={"content-type": "audio/wav"})
         return httpx.Response(404, json={"detail": "nicht da"})
