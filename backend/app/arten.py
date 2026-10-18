@@ -57,14 +57,16 @@ async def quelle_messen(teile: Teile, kw: Kellerwolke, haupt_id: UUID, ordner: P
     return Tonformat(rate=e.rate or 48000, kanaele=min(e.kanaele or 2, 8), kodierung="pcm_s16le"), float(dauer)
 
 
-def frisch_gesprochen(vorher: Plan, gelaufen: Plan) -> list[Probe]:
-    """Messproben des Sprechtempos aus den Abschnitten, die dieser Lauf neu gesprochen hat (Dauer bei Tempo 1)."""
+def frisch_gesprochen(vorher: Plan, gelaufen: Plan, schluessel: dict[str, str] | None = None) -> list[Probe]:
+    """Messproben des Sprechtempos aus den Abschnitten, die dieser Lauf neu gesprochen hat (Dauer bei Tempo 1);
+    `schluessel` je Rolle (Teile.tempo_schluessel), sonst die Stimme."""
     alt = {a.nr: a.gesprochen_als for a in vorher.abschnitte}
     aus = []
     for a in gelaufen.abschnitte:
         if a.dauer_s and a.gesprochen_als and a.gesprochen_als != alt.get(a.nr):
             rolle = gelaufen.rolle(a.rolle)
-            aus.append(Probe(rolle.stimme.schluessel, gelaufen.sprache, len(a.gesprochen(gelaufen.sprache)), a.dauer_s * rolle.tempo))
+            aus.append(Probe((schluessel or {}).get(rolle.kennung, rolle.stimme.schluessel), gelaufen.sprache,
+                             len(a.gesprochen(gelaufen.sprache)), a.dauer_s * rolle.tempo))
     return aus
 
 
@@ -105,7 +107,8 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
             async def uebersetzt(anteil: float, text: str) -> None:
                 await k.fortschritt(0.02 + 0.2 * anteil, text, phase="uebersetzen")
 
-            je_s = {r.kennung: await teile.tempo.zeichen_je_s(r.stimme.schluessel, plan.sprache) * r.tempo for r in plan.rollen}
+            je_s = {r.kennung: await teile.tempo.zeichen_je_s(await teile.tempo_schluessel(r, plan.sprache), plan.sprache) * r.tempo
+                    for r in plan.rollen}
             neu = await plan_uebersetzen(plan, ls, zeichen_je_s=je_s, komfort=einst.komfort, hoechstens=einst.hoechstens,
                                          fortschritt=uebersetzt, pruefen=k.pruefen, merken=merken)
             await k.merken(uebersetzt=sorted(set(k.zwischenstand.get("uebersetzt", [])) | set(neu)))
@@ -123,7 +126,8 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
             g = await teile.werk().ausfuehren(p, stimme=teile.gewaehlt, speicher=teile.speicher(plan_id), ziel=ziel,
                                               format=format, fortschritt=fortschritt, pruefen=k.pruefen,
                                               komfort=einst.komfort, hoechstens=einst.hoechstens)
-            await teile.tempo.messen(frisch_gesprochen(p, g))
+            schluessel = {r.kennung: await teile.tempo_schluessel(r, p.sprache) for r in p.rollen}
+            await teile.tempo.messen(frisch_gesprochen(p, g, schluessel))
             return g
 
         gelaufen = await sprechen(plan, 0.22, 0.86)

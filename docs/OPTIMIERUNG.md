@@ -80,6 +80,18 @@ Befund Runde 1: Die Zeit-Stimme spricht rund 17 Zeichen je Sekunde (Katalogstimm
    statt neu ausgeschnitten.
 3. Wie Strecke 1 mit der gewonnenen Stimme (Referenz englisch, gesprochen deutsch).
 
+| Lauf | Fassung | Stimme | Dauer | Länge | Stauchung Mittel/max | Aussprache Mittel/max |
+|---|---|---|---|---|---|---|
+| K1 A | 0.8.5 | gewonnen (6,1 s, Wertung 0,66), mit Referenztext (ICL) | 16:02 (6,2-fach, KI-Transkripte parallel) | 156,5 s | 1,03 / 1,07 | 14,4 % / 28,1 % |
+| K1 B | 0.9.0 | dieselbe, nur Stimmabdruck | 10:25 (4,0-fach) | 156,5 s | 1,19 / 1,31 | 7,1 % / 15,8 % |
+
+Befund Strecke 2: Gewinnen klappt (6,1 s, Schnitt in Pausen, Referenztext genau die Wörter, Abdruck gemerkt). Eine
+englische Referenz bringt mit Referenztext ihren Akzent ins Deutsche ("oco system", "opferage"); nur mit dem
+Stimmabdruck halbieren sich die Aussprachefehler. Vorgabe "Klonen in fremder Sprache" daher Stimmabdruck (0.9.1); ob
+B dem Original ähnlich genug klingt, entscheidet das Ohr des Nutzers (Hörproben A und B). Das Sprechtempo wird ab 0.9.1
+je Modus gemessen. KI-Transkripte laufen nur noch, wenn die Vertonung frei ist (Nachvertoner 2.77.4), weil Hören und
+Klonen sich die Rechner teilen.
+
 ## Strecke 3: mehrere Stimmen, am komplexesten
 
 1. Sprechertrennung der Transkription, je Sprecher eine Stimme (wiederverwendet oder gewonnen), Rollen im Plan.

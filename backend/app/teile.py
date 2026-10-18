@@ -23,7 +23,7 @@ from .referenz import WortZeit
 from .einstellungen import AppEinstellungen
 from .modell.plan import StimmWahl
 from .modell.stimme import Stimme
-from .sprechen import Gewaehlt, Katalogstimme, KeineLeitstelle, Klonstimme, Sprechdienst
+from .sprechen import Gewaehlt, Katalogstimme, KeineLeitstelle, Klonstimme, Sprechdienst, mit_modus
 from .tempo import Sprechtempo
 from .verzeichnis import Verzeichnis
 from .werk.werk import Werk
@@ -143,6 +143,17 @@ class Teile(Begleiter):
             if text and s.angaben:
                 await self.stimmen.aendern(wahl.knoten_id, s.angaben.model_copy(update={"referenztext": text[:2000]}))
         return Klonstimme(referenz=datei, referenztext=text, sprache=sprache)
+
+    async def tempo_schluessel(self, rolle, sprache: str) -> str:
+        """Unter welchem Schlüssel das Sprechtempo einer Rolle gemessen wird: die Stimme, bei einer Klonstimme im
+        Abdruckmodus mit Zusatz (sie spricht dann anders schnell als mit Referenztext)."""
+        if rolle.stimme.art != "klon":
+            return rolle.stimme.schluessel
+        s = await self.stimmen.lesen(rolle.stimme.knoten_id)
+        probe = Klonstimme(referenz=Path("-"), referenztext=(s.angaben.referenztext if s.angaben else ""),
+                           sprache=s.angaben.sprache if s.angaben else "de")
+        modus = mit_modus(probe, rolle.klonmodus, sprache, self.einstellungen.klonen_sprachfremd).modus
+        return rolle.stimme.schluessel + ("|abdruck" if modus == "abdruck" else "")
 
     async def hoeren_text(self, datei: Path, sprache: str) -> str:
         """Was in einer Aufnahme gesprochen wird (Hördienst über die Leitstelle)."""
