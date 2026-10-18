@@ -110,17 +110,22 @@ async def haupt(args) -> None:
         for modell in args.modelle.split(","):
             try:
                 e = await messen(plan, ls, modell.strip(), args.tempo, einst)
-                originale = {a.nr: a.original or "" for a in plan.abschnitte}
-                g = await gutachten(ls, args.gutachter, [(nr, originale[nr], t) for nr, t in e["texte"].items()])
-                e["vollstaendig"] = round(sum(1 for x in g.values() if x.get("vollstaendig")) / max(1, len(e["texte"])), 3)
-                e["maengel"] = {nr: {"fehlt": x.get("fehlt"), "hinzu": x.get("hinzu")} for nr, x in g.items()
-                                if not x.get("vollstaendig")}
-                print(f"{e['modell']:28} {e['dauer_s']:7.1f} s  über Grenze {len(e['ueber_grenze'])}/{e['abschnitte']}  "
-                      f"knapper {e['knapper']}  Zeichen/Grenze {e['zeichen_zu_grenze']:.2f}  vollständig {e['vollstaendig']:.0%}",
-                      flush=True)
             except Exception as f:  # noqa: BLE001 - ein Modell, das scheitert, ist selbst ein Messergebnis
                 e = {"modell": modell.strip(), "fehler": f"{type(f).__name__}: {f}"}
                 print(f"{e['modell']:28} gescheitert: {e['fehler'][:150]}", flush=True)
+            else:
+                # Scheitert der Gutachter, bleibt die Übersetzung (begutachten lässt sich später mit --begutachten)
+                try:
+                    originale = {a.nr: a.original or "" for a in plan.abschnitte}
+                    g = await gutachten(ls, args.gutachter, [(nr, originale[nr], t) for nr, t in e["texte"].items()])
+                    e["vollstaendig"] = round(sum(1 for x in g.values() if x.get("vollstaendig")) / max(1, len(e["texte"])), 3)
+                    e["maengel"] = {nr: {"fehlt": x.get("fehlt"), "hinzu": x.get("hinzu")} for nr, x in g.items()
+                                    if not x.get("vollstaendig")}
+                except Exception as f:  # noqa: BLE001
+                    e["gutachten_fehler"] = f"{type(f).__name__}: {f}"[:300]
+                voll = f"vollständig {e['vollstaendig']:.0%}" if "vollstaendig" in e else "Gutachten gescheitert"
+                print(f"{e['modell']:28} {e['dauer_s']:7.1f} s  über Grenze {len(e['ueber_grenze'])}/{e['abschnitte']}  "
+                      f"knapper {e['knapper']}  Zeichen/Grenze {e['zeichen_zu_grenze']:.2f}  {voll}", flush=True)
             ergebnisse.append(e)
             if args.aus:
                 Path(args.aus).write_text(json.dumps(ergebnisse, ensure_ascii=False, indent=1))
