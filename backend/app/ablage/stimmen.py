@@ -5,7 +5,7 @@ geblendet, 40 ms Vorlauf und 60 ms Nachlauf (sonst übernimmt der Klon einen Kna
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from uuid import UUID
 
@@ -18,12 +18,13 @@ from appkern.kellerwolke import Kellerwolke, Knoten, NichtGefunden
 from appkern.ton import Ton, Tonformat
 
 from ..modell.stimme import Bereich, StimmAngaben, Stimme, aus_alter_app
+from ..referenz import WortZeit, beste
 from ..werk import fuegen
 from . import orte
 
 RATE = 24000
 REFERENZ = Tonformat(rate=RATE, kanaele=1, kodierung="pcm_s16le")
-LANG_S, MITTE_S = 10.0, 8.0
+LANG_S = 7.5                # bis hierhin bleibt eine Probe ganz; länger wird die beste Stelle gewählt (referenz.py)
 KANTE_MS, VORLAUF_MS, NACHLAUF_MS = 15, 40, 60
 
 
@@ -42,20 +43,28 @@ def zugang(liefern: Callable[[], Kellerwolke | None]) -> Kellerwolke:
     return kw
 
 
-async def probe_aufbereiten(ton: Ton, roh: Path, ziel: Path, mindestens_s: float) -> float:
-    werte = fuegen.stille_kuerzen(await ton.lesen(roh, RATE), RATE)
-    dauer = werte.size / RATE
-    if dauer < mindestens_s:
-        raise ProbeZuKurz(f"Die Probe hat nur {dauer:.1f} s Sprache; nötig sind mindestens {mindestens_s:.0f} s")
-    if dauer > LANG_S:
-        mitte = werte.size // 2
-        halb = int(MITTE_S * RATE / 2)
-        werte = werte[mitte - halb:mitte + halb]
+async def probe_aufbereiten(ton: Ton, roh: Path, ziel: Path, mindestens_s: float,
+                            woerter: Callable[[Path], Awaitable[list[WortZeit]]]) -> tuple[float, str | None]:
+    """Referenz aus einer Probe (Nutzer 18.10.2026: 5 bis 7 Sekunden, nie ein harter Schnitt im Wort). Bis LANG_S bleibt
+    die Probe ganz; länger wird sie gehört (`woerter`) und die beste Stelle mit Pausen an beiden Rändern gewählt. Liefert
+    die Dauer und, wenn zugeschnitten wurde, den Referenztext genau dieser Stelle."""
+    werte = await ton.lesen(roh, RATE)
+    sprache = fuegen.stille_kuerzen(werte, RATE).size / RATE
+    if sprache < mindestens_s:
+        raise ProbeZuKurz(f"Die Probe hat nur {sprache:.1f} s Sprache; nötig sind mindestens {mindestens_s:.0f} s")
+    text = None
+    if werte.size / RATE > LANG_S:
+        gehoert = await woerter(roh)
+        k = beste(werte, RATE, gehoert, None)
+        if k is None:
+            raise ProbeZuKurz("In der Probe gibt es keine Stelle von 5 bis 7 Sekunden mit Pausen davor und danach; "
+                              "bitte eine Aufnahme mit natürlichen Sprechpausen")
+        werte, text = werte[int(k.von * RATE): int(k.bis * RATE)], k.text
     werte = fuegen.raender(werte, RATE, KANTE_MS)
     werte = np.concatenate([np.zeros(int(RATE * VORLAUF_MS / 1000), np.float32), werte,
                             np.zeros(int(RATE * NACHLAUF_MS / 1000), np.float32)])
     await ton.schreiben(werte, RATE, ziel, REFERENZ)
-    return round(werte.size / RATE, 2)
+    return round(werte.size / RATE, 2), text
 
 
 def _angaben(inhalt: bytes, name: str) -> StimmAngaben:

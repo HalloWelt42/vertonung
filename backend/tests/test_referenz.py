@@ -37,3 +37,36 @@ def test_ton_entscheidet_bei_musik_in_den_pausen():
     werte[int(0.0 * RATE):int(8.0 * RATE)] += 0.08 * np.sin(2 * np.pi * 523 * t[:int(8.0 * RATE)])   # Musik unter Satz 1
     k = beste(werte, RATE, woerter, "s1")
     assert k is not None and k.von > 9.0 and k.gruende["ruhe"] > 0.5
+
+
+async def test_lange_probe_wird_in_pausen_zugeschnitten(tmp_path):
+    import wave
+
+    import pytest
+
+    from appkern.ton import Ton
+
+    from app.ablage.stimmen import ProbeZuKurz, probe_aufbereiten
+    rate = 24000
+    woerter = satz(0.5, 12) + satz(5.5, 17) + satz(12.5, 8)               # 4,2 s, dann 5,9 s am Stück, dann 2,8 s
+    werte = np.zeros(int(16 * rate), dtype=np.float32)
+    t = np.arange(werte.size) / rate
+    for w in woerter:
+        a, b = int(w.start * rate), int(w.ende * rate)
+        werte[a:b] = 0.3 * np.sin(2 * np.pi * 200 * t[a:b])
+    roh = tmp_path / "probe.wav"
+    with wave.open(str(roh), "wb") as f:
+        f.setnchannels(1)
+        f.setsampwidth(2)
+        f.setframerate(rate)
+        f.writeframes((werte * 32767).astype("<i2").tobytes())
+
+    async def gehoert(_):
+        return woerter
+    dauer, text = await probe_aufbereiten(Ton(), roh, tmp_path / "ref.wav", 5.0, gehoert)
+    assert 5.0 <= dauer <= 7.4 and text.startswith("w6_0") and "w1_" not in text and "w12" not in text
+
+    async def ohne_pausen(_):
+        return [WortZeit("x", 0.0, 16.0)]
+    with pytest.raises(ProbeZuKurz):
+        await probe_aufbereiten(Ton(), roh, tmp_path / "ref2.wav", 5.0, ohne_pausen)

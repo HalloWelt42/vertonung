@@ -19,6 +19,7 @@ from appkern.ton import Ton
 from .ablage.plaene import Plaene
 from .ablage.stimmen import Stimmen, zugang
 from .dienstablage import Ablage, DienstAblage
+from .referenz import WortZeit
 from .einstellungen import AppEinstellungen
 from .modell.plan import StimmWahl
 from .modell.stimme import Stimme
@@ -143,10 +144,18 @@ class Teile(Begleiter):
 
     async def hoeren_text(self, datei: Path, sprache: str) -> str:
         """Was in einer Aufnahme gesprochen wird (Hördienst über die Leitstelle)."""
+        return (await self._hoeren(datei, sprache)).text
+
+    async def hoeren_woerter(self, datei: Path, sprache: str) -> list[WortZeit]:
+        """Die Wörter einer Aufnahme mit Zeiten und Sicherheit (zum Zuschneiden einer Probe)."""
+        gehoert = await self._hoeren(datei, sprache)
+        return [WortZeit(w.wort, w.start, w.ende) for s in gehoert.segmente for w in s.woerter]
+
+    async def _hoeren(self, datei: Path, sprache: str):
         ls = self.geruest.leitstelle
         if ls is None:
             raise KeineLeitstelle("Zum Hören braucht die Vertonung die Leitstelle")
-        return (await hoeren(ls, self.einstellungen.dienst_hoeren, datei, sprache, titel="Vertonung: hören")).text
+        return await hoeren(ls, self.einstellungen.dienst_hoeren, datei, sprache, titel="Vertonung: hören")
 
     async def stimmen_namen(self, wahlen: list[StimmWahl]) -> dict[str, str]:
         namen: dict[str, str] = {}

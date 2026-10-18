@@ -63,8 +63,10 @@ def router(teile: Teile) -> APIRouter:
                 async for stueck in request.stream():
                     datei.write(stueck)
             referenz = ordner / "referenz.wav"
-            dauer = await probe_aufbereiten(teile.ton_jetzt, roh, referenz, teile.einstellungen.probe_min_s)
-            angaben = StimmAngaben(name=name, bereich=bereich, sprache=sprache, referenztext=referenztext,
+            dauer, zugeschnitten = await probe_aufbereiten(teile.ton_jetzt, roh, referenz, teile.einstellungen.probe_min_s,
+                                                           lambda d: teile.hoeren_woerter(d, sprache))
+            # zugeschnitten: der Text genau dieser Stelle; ganz geblieben: der angegebene oder (beim Sprechen) gehörte
+            angaben = StimmAngaben(name=name, bereich=bereich, sprache=sprache, referenztext=zugeschnitten or referenztext,
                                    herkunft=Herkunft(art="hochgeladen"))
             return await teile.stimmen.anlegen(angaben, referenz, dauer, original=roh)
         finally:

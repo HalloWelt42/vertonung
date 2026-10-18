@@ -53,13 +53,13 @@ async def test_ganzer_weg(tmp_path: Path):
                 katalog = (await c.get("/api/v1/stimmen?bereich=katalog", headers=h)).json()
                 assert [s["name"] for s in katalog] == ["serena", "aiden"]
 
-                # Stimme aus einer hochgeladenen Probe (8 s)
+                # Stimme aus einer hochgeladenen Probe (6,5 s: bleibt ganz, der angegebene Text gilt)
                 r = await c.post("/api/v1/stimmen?name=Probestimme Test&bereich=fremd&referenztext=Hallo", headers=h,
-                                 content=ton(8.0, 180.0))
+                                 content=ton(6.5, 180.0))
                 assert r.status_code == 201, r.text
                 stimme = r.json()
                 angelegt.append(stimme["id"])
-                assert stimme["bereich"] == "fremd" and 8.0 <= stimme["dauer_s"] <= 8.2
+                assert stimme["bereich"] == "fremd" and 6.5 <= stimme["dauer_s"] <= 6.7
                 assert stimme["id"] in [s["id"] for s in (await c.get("/api/v1/stimmen?bereich=fremd", headers=h)).json()]
                 r = await c.post("/api/v1/stimmen?name=Zu kurz&bereich=fremd", headers=h, content=ton(2.0))
                 assert r.status_code == 422
