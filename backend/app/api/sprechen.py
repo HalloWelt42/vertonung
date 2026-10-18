@@ -16,6 +16,7 @@ from appkern.ton import Tonformat
 
 from ..modell.plan import StimmWahl
 from ..saetze import saetze
+from ..sprechen import mit_modus
 from ..teile import Teile
 from ..werk import fuegen
 from ..werk.werk import RATE
@@ -44,7 +45,8 @@ def router(teile: Teile) -> APIRouter:
         werk = teile.werk()
         teile_ = []
         for s in saetze(a.text):
-            g_ = await werk.abschnitt_sprechen(s.text, gewaehlt, a.sprache or e.sprache, a.tempo, titel="Sprechen")
+            wie = mit_modus(gewaehlt, "auto", a.sprache or e.sprache, e.klonen_sprachfremd)
+            g_ = await werk.abschnitt_sprechen(s.text, wie, a.sprache or e.sprache, a.tempo, titel="Sprechen")
             teile_.append((g_.werte, PAUSE_S))
         werte = fuegen.folge(teile_, RATE)
         ordner = teile.arbeit / f"sprechen-{uuid.uuid4().hex}"

@@ -19,7 +19,7 @@ from appkern.app import von
 from appkern.auftraege import Auftrag
 
 from ..dienst import DienstEingabe, DienstSegment, ablegen
-from ..modell.plan import StimmWahl
+from ..modell.plan import Klonmodus, StimmWahl
 from ..teile import Teile
 
 SEGMENTE = TypeAdapter(list[DienstSegment])
@@ -42,6 +42,8 @@ def router(teile: Teile) -> APIRouter:
                        stimmen: Literal["fest", "original"] = Form("fest", description="original: je Sprecher seine Stimme "
                                                                    "aus dem Video (wiederverwendet oder gewonnen), `stimme` "
                                                                    "als Ersatz; dann transkribiert die Vertonung selbst"),
+                       klonmodus: Klonmodus = Form("auto", description="icl (mit Referenztext), abdruck (nur Stimmabdruck) "
+                                                                    "oder auto (nach Sprache der Stimme)"),
                        behalten: bool = Form(True, description="false: nach dem Abholen in den Papierkorb, spätestens "
                                                                "48 Stunden nach dem Hochladen"),
                        konto: Konto = g.pflicht) -> Auftrag:
@@ -65,7 +67,7 @@ def router(teile: Teile) -> APIRouter:
         finally:
             shutil.rmtree(ordner, ignore_errors=True)
         eingabe = DienstEingabe(haupt_id=haupt.id, name=name, ausgangssprache=ausgangssprache, sprache=sprache, stimme=wahl,
-                                stimmen=stimmen, format=format, von=von(konto))
+                                stimmen=stimmen, klonmodus=klonmodus, format=format, von=von(konto))
         auftrag = await g.auftraege.einreihen("dienst_vertonen", eingabe, titel=f"{name} ({konto.app or 'direkt'})")
         await teile.dienstablage.eintragen(auftrag.id, haupt.id, konto.app or "Direkt", behalten)
         return auftrag

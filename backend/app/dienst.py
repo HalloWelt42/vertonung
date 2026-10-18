@@ -19,7 +19,7 @@ from appkern.auftraege import Kontext
 
 from . import originalstimmen, planen
 from .ablage import orte
-from .modell.plan import Quelle, StimmWahl, Ziel
+from .modell.plan import Klonmodus, Quelle, StimmWahl, Ziel
 from .teile import Teile
 
 TEXTROLLEN = ("transkript", "untertitel", "untertitel_vtt")
@@ -45,6 +45,7 @@ class DienstEingabe(BaseModel):
     sprache: str = "de"
     stimme: StimmWahl | None = None             # eine Stimme für alle Sprecher (ohne: die Stimme ab Werk)
     stimmen: Literal["fest", "original"] = "fest"   # original: je Sprecher seine Stimme aus dem Video, `stimme` als Ersatz
+    klonmodus: Klonmodus = "auto"               # für Messungen und Sonderfälle; auto entscheidet nach Sprache der Stimme
     format: Literal["wie_quelle", "m4a"] = "m4a"
     von: str | None = None
 
@@ -123,6 +124,8 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
         plan = planen.aus_segmenten(e.name, segmente, je_sprecher, stimme, quelle=Quelle(knoten_id=haupt.id, pfad=haupt.pfad, etag=haupt.etag),
                                     quelle_dauer_s=float(dauer) if isinstance(dauer, (int, float)) else None, sprache=e.sprache,
                                     ziel=Ziel(format=e.format), ausgangssprache=ausgang)
+        for rolle in plan.rollen:
+            rolle.klonmodus = e.klonmodus
         knoten = await plaene.speichern(haupt.id, plan)
         await teile.verzeichnis.eintragen(plan, knoten.id, haupt.id, haupt.pfad,
                                           await teile.stimmen_namen([r.stimme for r in plan.rollen]))

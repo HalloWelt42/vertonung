@@ -95,7 +95,8 @@ class Teile(Begleiter):
 
     def werk(self) -> Werk:
         """Ein Werk mit dem Ton der aktuellen Einstellungen (ffmpeg kann sich ändern)."""
-        return Werk(self.ton_jetzt, self.dienst, ersatzstimme=lambda: self.einstellungen.ersatzstimme)
+        return Werk(self.ton_jetzt, self.dienst, ersatzstimme=lambda: self.einstellungen.ersatzstimme,
+                    sprachfremd=lambda: self.einstellungen.klonen_sprachfremd)
 
     @property
     def arbeit(self) -> Path:
@@ -135,12 +136,13 @@ class Teile(Begleiter):
         if wahl.art == "katalog":
             return Katalogstimme(wahl.name or self.einstellungen.stimme_vorgabe)
         datei, text = await self.stimmen.referenz(wahl.knoten_id)
+        s = await self.stimmen.lesen(wahl.knoten_id)
+        sprache = s.angaben.sprache if s.angaben else "de"
         if not text.strip() and self.geruest.leitstelle is not None:
-            s = await self.stimmen.lesen(wahl.knoten_id)
-            text = await self.hoeren_text(datei, s.angaben.sprache if s.angaben else "de")
+            text = await self.hoeren_text(datei, sprache)
             if text and s.angaben:
                 await self.stimmen.aendern(wahl.knoten_id, s.angaben.model_copy(update={"referenztext": text[:2000]}))
-        return Klonstimme(referenz=datei, referenztext=text)
+        return Klonstimme(referenz=datei, referenztext=text, sprache=sprache)
 
     async def hoeren_text(self, datei: Path, sprache: str) -> str:
         """Was in einer Aufnahme gesprochen wird (Hördienst über die Leitstelle)."""

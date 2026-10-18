@@ -155,3 +155,16 @@ async def test_gescheiterte_transkription_beendet_das_warten():
     k = SimpleNamespace(pruefen=nichts, fortschritt=nichts)
     with pytest.raises(TranskriptionGescheitert, match="Hördienst nicht erreichbar"):
         await transkript_abwarten(Kw(["laeuft", "fehler"]), "h", "a", time.time(), k, takt_s=0)
+
+
+def test_klonmodus_nach_sprache_der_stimme():
+    from pathlib import Path
+
+    from app.sprechen import Katalogstimme, Klonstimme, mit_modus
+    englisch = Klonstimme(referenz=Path("r.wav"), referenztext="Hello there.", sprache="en")
+    assert mit_modus(englisch, "auto", "en", "abdruck").modus == "icl"          # gleiche Sprache: mit Referenztext
+    assert mit_modus(englisch, "auto", "de", "abdruck").modus == "abdruck"      # fremde Sprache: nach Einstellung
+    assert mit_modus(englisch, "icl", "de", "abdruck").modus == "icl"           # ausdrücklich gewählt
+    ohne_text = Klonstimme(referenz=Path("r.wav"), referenztext=" ", sprache="de")
+    assert mit_modus(ohne_text, "icl", "de", "icl").modus == "abdruck"          # ohne Text nie ICL
+    assert mit_modus(Katalogstimme("serena"), "abdruck", "de", "icl") == Katalogstimme("serena")

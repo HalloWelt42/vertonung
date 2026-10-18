@@ -5,7 +5,7 @@ man beim selben Dienst abholt (`GET /tts/audio/<datei>`). Hier wird nur überset
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from appkern.leitstelle import Leitstelle
@@ -26,6 +26,20 @@ class Katalogstimme:
 class Klonstimme:
     referenz: Path            # Referenzprobe als Datei (aus der Kellerwolke geholt)
     referenztext: str
+    sprache: str = "de"       # Sprache der Referenz
+    modus: str = "icl"        # icl: mit Referenztext; abdruck: nur der Stimmabdruck (siehe mit_modus)
+
+
+def mit_modus(stimme: "Gewaehlt", gewuenscht: str, sprache: str, sprachfremd: str) -> "Gewaehlt":
+    """Wie eine Klonstimme spricht. Mit Referenztext (icl) übernimmt das Modell Klang, Sprache und Sprechweise der
+    Probe; spricht die Stimme eine andere Sprache als ihre Probe, bringt das deren Akzent mit (Messung K1 18.10.2026),
+    dann gilt die Einstellung `sprachfremd`. Ohne Referenztext bleibt nur der Abdruck."""
+    if not isinstance(stimme, Klonstimme):
+        return stimme
+    modus = gewuenscht if gewuenscht != "auto" else ("icl" if stimme.sprache == sprache else sprachfremd)
+    if modus == "icl" and not stimme.referenztext.strip():
+        modus = "abdruck"
+    return replace(stimme, modus=modus)
 
 
 Gewaehlt = Katalogstimme | Klonstimme
@@ -58,6 +72,6 @@ class Sprechdienst:
             with open(stimme.referenz, "rb") as referenz:
                 antwort = await dienst.json("POST", "/tts/clone", titel=titel,
                                             data={"text": text, "ref_text": stimme.referenztext, "language": sprache_name,
-                                                  "speed": str(tempo)},
+                                                  "speed": str(tempo), "modus": stimme.modus},
                                             files={"ref_audio": (stimme.referenz.name, referenz, "audio/wav")})
         return await dienst.herunterladen(f"/tts/audio/{antwort['filename']}", ziel, titel=titel)

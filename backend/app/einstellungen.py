@@ -48,6 +48,12 @@ class AppEinstellungen(Grundeinstellungen):
                               description="Schneller wird nie gesprochen; was dann noch fehlt, wird nach hinten geschoben. "
                                           "Gekürzt oder abgeschnitten wird nie.")
 
+    klonen_sprachfremd: Literal["icl", "abdruck"] = Field(
+        "icl", title="Klonen in fremder Sprache", json_schema_extra={**SPRECHEN, "beschriftungen": {
+            "icl": "Mit Referenztext", "abdruck": "Nur Stimmabdruck"}},
+        description="Spricht eine Klonstimme eine andere Sprache als ihre Probe (etwa eine englische Stimme deutsch): mit "
+                    "Referenztext klingt sie der Probe am ähnlichsten, bringt aber deren Akzent mit; nur der Stimmabdruck "
+                    "spricht sauberer, klingt der Probe etwas weniger ähnlich.")
     sprechtempo: float = Field(11.5, ge=5.0, le=25.0, title="Sprechtempo ab Werk",
                                json_schema_extra={**ZEITGENAU, "schritt": 0.5, "einheit": "Zeichen je Sekunde"},
                                description="Damit rechnet die Übersetzung, wie viel Text in die Zeit eines Abschnitts "

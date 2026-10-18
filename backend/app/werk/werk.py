@@ -23,7 +23,7 @@ from appkern.ton import ARBEIT, Ton, Tonformat
 
 from ..modell.plan import Bericht, Plan, StimmWahl
 from ..saetze import stuecke
-from ..sprechen import Gewaehlt, Katalogstimme, Sprechdienst
+from ..sprechen import Gewaehlt, Katalogstimme, Sprechdienst, mit_modus
 from . import fuegen
 from .pruefen import befund
 from .zeitlage import Fenster, legen
@@ -45,10 +45,12 @@ class Gesprochen:
 
 
 class Werk:
-    def __init__(self, ton: Ton, dienst: Sprechdienst, *, ersatzstimme: Callable[[], str]) -> None:
+    def __init__(self, ton: Ton, dienst: Sprechdienst, *, ersatzstimme: Callable[[], str],
+                 sprachfremd: Callable[[], str] = lambda: "icl") -> None:
         self.ton = ton
         self.dienst = dienst
         self._ersatz = ersatzstimme
+        self._sprachfremd = sprachfremd
 
     async def _stueck(self, text: str, stimme: Gewaehlt, sprache: str, tempo: float, arbeit: Path,
                       titel: str) -> tuple[np.ndarray | None, int]:
@@ -101,7 +103,8 @@ class Werk:
                 await fortschritt(i / gesamt, f"Abschnitt {a.nr} von {gesamt}")
                 if rolle.stimme.schluessel not in gewaehlt:
                     gewaehlt[rolle.stimme.schluessel] = await stimme(rolle.stimme)
-                g = await self.abschnitt_sprechen(a.gesprochen(plan.sprache), gewaehlt[rolle.stimme.schluessel], plan.sprache, rolle.tempo,
+                wie = mit_modus(gewaehlt[rolle.stimme.schluessel], rolle.klonmodus, plan.sprache, self._sprachfremd())
+                g = await self.abschnitt_sprechen(a.gesprochen(plan.sprache), wie, plan.sprache, rolle.tempo,
                                                   titel=f"{plan.name}, Abschnitt {a.nr}")
                 await self.ton.schreiben(g.werte, RATE, datei, ARBEIT)
                 for alt in speicher.glob(f"{a.nr:05d}-*.wav"):

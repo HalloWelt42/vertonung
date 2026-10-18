@@ -16,6 +16,7 @@ Art = Literal["vorlesen", "dialog", "zeitgenau"]
 ARTEN: dict[str, str] = {"vorlesen": "Vorlesen", "dialog": "Dialog", "zeitgenau": "Zeitgenau"}
 Zielformat = Literal["mp3", "wav", "flac", "ogg", "wie_quelle", "m4a"]   # m4a: zeitgenau, AAC wie die Quelle
 Stand = Literal["offen", "gesprochen", "geaendert"]
+Klonmodus = Literal["auto", "icl", "abdruck"]   # wie eine Klonstimme spricht (siehe sprechen.mit_modus)
 Weg = Literal["frei", "luecke", "gestaucht", "geschoben"]
 
 
@@ -42,6 +43,7 @@ class Rolle(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     stimme: StimmWahl
     tempo: float = Field(1.0, ge=0.5, le=2.0)
+    klonmodus: Klonmodus = "auto"
 
 
 AUSSPRACHE_HINWEIS = 0.15       # ab dieser Wortfehlerquote beim Zurückhören ist ein Abschnitt ein Hinweis wert
@@ -86,7 +88,10 @@ class Abschnitt(BaseModel):
         return sprechbar(self.text, sprache)
 
     def soll(self, rolle: Rolle, sprache: str) -> str:
-        roh = "\x1f".join([self.gesprochen(sprache).strip(), rolle.stimme.schluessel, f"{rolle.tempo:.3f}", sprache])
+        teile = [self.gesprochen(sprache).strip(), rolle.stimme.schluessel, f"{rolle.tempo:.3f}", sprache]
+        if rolle.klonmodus != "auto":                 # "auto" ändert die Summe nicht (ältere Pläne bleiben gesprochen)
+            teile.append(rolle.klonmodus)
+        roh = "\x1f".join(teile)
         return hashlib.sha256(roh.encode("utf-8")).hexdigest()[:20]
 
     def uebersetzung_noetig(self, sprache: str) -> bool:
