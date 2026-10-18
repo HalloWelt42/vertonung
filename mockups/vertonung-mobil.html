@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="de" data-theme="hell">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Vertonung - Entwürfe am Telefon</title>
+    <link rel="stylesheet" href="kopf.css" />
+  </head>
+  <body>
+    <!-- Eigene Telefonansicht der Schale: Reiter unten (Vorlesen, Vertonungen, Stimmen, Mehr; Aufträge und
+         Einstellungen unter Mehr). Stimmen in den Bildern nur mit Katalog-Namen. -->
+    <div class="buehne">
+
+      <div>
+        <p class="zustand-titel" style="margin-top:0">1. Vorlesen: Text einfügen, Stimme wählen, los; spielt ab dem ersten Satz, das Ergebnis landet unter Vertonungen</p>
+        <div class="telefon"><div class="mobil">
+          <div class="t-kopf"><h1>Vorlesen</h1><span class="pille aktiv"><i class="fa-solid fa-gears"></i>1</span></div>
+          <div class="t-inhalt"><div class="t-ansicht">
+            <textarea class="text-eingabe niedrig" aria-label="Text zum Vorlesen">Liebe Nachbarn, am Samstag ab zehn Uhr ist Hoffest. Wer einen Kuchen mitbringt, trägt sich bitte bis Donnerstag in die Liste im Treppenhaus ein.</textarea>
+            <div class="t-gruppe">Sprechen mit</div>
+            <div class="t-liste">
+              <div class="t-zeile"><i class="fa-solid fa-user"></i><div class="t-text"><div class="t-meta">Stimme</div><div class="t-name">Kerstin · fremd</div></div><i class="fa-solid fa-chevron-down" style="color:var(--text-3)"></i></div>
+              <div class="t-zeile"><i class="fa-solid fa-gauge"></i><div class="t-text"><div class="t-meta">Tempo</div><div class="t-name">100 %</div></div><i class="fa-solid fa-chevron-down" style="color:var(--text-3)"></i></div>
+            </div>
+            <button class="knopf primaer" style="width:100%; margin:12px 0 0; height:48px"><i class="fa-solid fa-volume-high"></i> Vorlesen</button>
+            <div class="t-spieler">
+              <button class="gross"><i class="fa-solid fa-pause"></i></button>
+              <div class="welle" data-kopf="0.22" data-saeulen="60"></div>
+              <span class="zeitangabe">00:03<br />00:14</span>
+            </div>
+          </div></div>
+          <nav class="t-reiter">
+            <button class="aktiv"><i class="fa-solid fa-book-open-reader"></i>Vorlesen</button>
+            <button><i class="fa-solid fa-wave-square"></i>Vertonungen</button>
+            <button><i class="fa-solid fa-user-group"></i>Stimmen</button>
+            <button><i class="fa-solid fa-ellipsis"></i>Mehr</button>
+          </nav>
+        </div></div>
+      </div>
+
+      <div>
+        <p class="zustand-titel" style="margin-top:0">2. Vertonungen: Liste mit Stand; Tippen spielt das Ergebnis, eine laufende zeigt ihren Fortschritt</p>
+        <div class="telefon"><div class="mobil">
+          <div class="t-kopf"><h1>Vertonungen</h1></div>
+          <div class="t-inhalt">
+            <div class="t-gruppe">Läuft</div>
+            <div class="t-liste">
+              <div class="t-zeile"><i class="fa-solid fa-clock"></i><div class="t-text"><div class="t-name">Folge 12: Hausverwaltung</div><div class="t-meta">Zeitgenau · Sprechen 61 %</div></div><span class="stand-pille laeuft"><i class="fa-solid fa-circle-notch fa-spin"></i></span></div>
+            </div>
+            <div class="t-gruppe">Fertig</div>
+            <div class="t-liste">
+              <div class="t-zeile"><i class="fa-solid fa-book-open-reader"></i><div class="t-text"><div class="t-name">Hoffest</div><div class="t-meta">Vorlesen · Kerstin · 0:14</div></div><i class="fa-solid fa-play" style="color:var(--akzent)"></i></div>
+              <div class="t-zeile"><i class="fa-solid fa-book-open-reader"></i><div class="t-text"><div class="t-name">Brief an die Hausverwaltung</div><div class="t-meta">Vorlesen · Kerstin · 2:41</div></div><i class="fa-solid fa-play" style="color:var(--akzent)"></i></div>
+              <div class="t-zeile"><i class="fa-solid fa-comments"></i><div class="t-text"><div class="t-name">Hörspiel Szene 3</div><div class="t-meta">Dialog · 3 Rollen · 3 geändert</div></div><span class="stand-pille warn">geändert</span></div>
+              <div class="t-zeile"><i class="fa-solid fa-clock"></i><div class="t-text"><div class="t-name">Vortrag Stadtrat</div><div class="t-meta">Zeitgenau · Karlsson · 5 Hinweise</div></div><i class="fa-solid fa-play" style="color:var(--akzent)"></i></div>
+              <div class="t-zeile"><i class="fa-solid fa-book-open-reader"></i><div class="t-text"><div class="t-name">Kapitel 1</div><div class="t-meta">Vorlesen · Thorsten · 24:50</div></div><i class="fa-solid fa-play" style="color:var(--akzent)"></i></div>
+            </div>
+          </div>
+          <nav class="t-reiter">
+            <button><i class="fa-solid fa-book-open-reader"></i>Vorlesen</button>
+            <button class="aktiv"><i class="fa-solid fa-wave-square"></i>Vertonungen</button>
+            <button><i class="fa-solid fa-user-group"></i>Stimmen</button>
+            <button><i class="fa-solid fa-ellipsis"></i>Mehr</button>
+          </nav>
+        </div></div>
+      </div>
+
+      <div>
+        <p class="zustand-titel" style="margin-top:0">3. Stimmen: nach Bereich, Probe anhören; eine neue Probe mit dem Rekorder aufnehmen (wie in der Transkription)</p>
+        <div class="telefon"><div class="mobil">
+          <div class="t-kopf"><h1>Stimmen</h1></div>
+          <div class="t-inhalt">
+            <span class="segment"><span>Privat 12</span><span class="aktiv">Fremd 31</span><span>Katalog 9</span></span>
+            <div class="t-liste" style="margin-top:12px">
+              <div class="t-zeile"><i class="fa-solid fa-user"></i><div class="t-text"><div class="t-name">Kerstin</div><div class="t-meta">8,2 s · aus Folge 12</div></div><i class="fa-solid fa-play" style="color:var(--akzent)"></i></div>
+              <div class="t-zeile"><i class="fa-solid fa-user"></i><div class="t-text"><div class="t-name">Karlsson</div><div class="t-meta">7,1 s · aus Interview Bauamt</div></div><i class="fa-solid fa-play" style="color:var(--akzent)"></i></div>
+              <div class="t-zeile"><i class="fa-solid fa-user"></i><div class="t-text"><div class="t-name">Eva K.</div><div class="t-meta">9,6 s · hochgeladen</div></div><i class="fa-solid fa-play" style="color:var(--akzent)"></i></div>
+              <div class="t-zeile"><i class="fa-solid fa-user"></i><div class="t-text"><div class="t-name">Ramona</div><div class="t-meta">6,4 s · aus Vortrag Stadtrat</div></div><i class="fa-solid fa-play" style="color:var(--akzent)"></i></div>
+              <div class="t-zeile"><i class="fa-solid fa-user"></i><div class="t-text"><div class="t-name">Thorsten</div><div class="t-meta">8,8 s · aus der alten App</div></div><i class="fa-solid fa-play" style="color:var(--akzent)"></i></div>
+            </div>
+            <button class="knopf" style="width:100%; margin-top:14px; height:48px"><i class="fa-solid fa-circle-dot" style="color:var(--gefahr)"></i> Probe aufnehmen</button>
+          </div>
+          <nav class="t-reiter">
+            <button><i class="fa-solid fa-book-open-reader"></i>Vorlesen</button>
+            <button><i class="fa-solid fa-wave-square"></i>Vertonungen</button>
+            <button class="aktiv"><i class="fa-solid fa-user-group"></i>Stimmen</button>
+            <button><i class="fa-solid fa-ellipsis"></i>Mehr</button>
+          </nav>
+        </div></div>
+      </div>
+
+    </div>
+    <script src="gemeinsam.js"></script>
+  </body>
+</html>

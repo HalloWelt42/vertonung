@@ -1,0 +1,54 @@
+/* Eigene Teile der Vertonung (Abschnitte eines Plans, Rollen, Spuren der Zeitlage, Bericht, Stimmen, Kandidaten).
+   Farben und Größen aus der Schale; Rollenfarben wie die Sprecherfarben (--s1 bis --s6). Einzige Quelle: die
+   Oberfläche bindet sie ein, die Entwürfe in mockups/ ebenso. */
+
+/* ----- Plan: Abschnitte (Zeilen des Plans; .abschnitt gehört der Schale) ----- */
+.abschnitte { max-width: 1020px; }
+.plan-zeile { display: grid; grid-template-columns: 34px 150px minmax(0, 1fr) 36px; gap: 12px; align-items: start;
+              padding: 8px 12px; border-radius: var(--r2); }
+.plan-zeile.ohne-rolle { grid-template-columns: 34px minmax(0, 1fr) 36px; }
+.plan-zeile + .plan-zeile { margin-top: 2px; }
+.plan-zeile .nr { font-family: ui-monospace, monospace; font-size: var(--marke); color: var(--text-3); text-align: right; padding-top: 5px; }
+.plan-zeile .satz { line-height: 1.6; min-width: 0; padding-top: 2px; }
+.plan-zeile .unter { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-top: 3px; }
+.plan-zeile .dauer { font-family: ui-monospace, monospace; font-size: var(--marke); color: var(--text-3); white-space: nowrap; }
+.plan-zeile.jetzt { background: var(--akzent-weich); }
+.plan-zeile.geaendert { background: var(--flaeche); box-shadow: 0 0 0 1px var(--warn); }
+
+/* ----- Rollen eines Dialogs ----- */
+.rollen { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.rollen-karte { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; background: var(--flaeche);
+                border-radius: var(--r3); box-shadow: var(--schatten); }
+.rollen-karte .sprecher { min-width: 90px; }
+
+/* ----- Zeitlage: Spur der Quelle und Spur der neuen Sprache ----- */
+.spuren { background: var(--flaeche); border-radius: var(--r3); box-shadow: var(--schatten); padding: 12px 16px 14px; margin-bottom: 14px; }
+.spuren-zeile { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; align-items: center; }
+.spuren-zeile + .spuren-zeile { margin-top: 8px; }
+.spuren-zeile .name { font-size: var(--klein); color: var(--text-2); }
+.spur { position: relative; height: 26px; background: var(--flaeche-2); border-radius: 6px; overflow: hidden; }
+.spur .stueck { position: absolute; top: 4px; bottom: 4px; border-radius: 4px; background: var(--text-3); opacity: .55; }
+.spur .stueck.neu { background: var(--akzent); opacity: .8; }
+.spur .stueck.gestaucht { background: var(--akzent); opacity: 1; }
+.spur .stueck.geschoben { background: var(--warn); opacity: 1; }
+.spur .kopf-linie { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--text); }
+.spuren-legende { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: var(--marke); color: var(--text-3); }
+.spuren-legende i { margin-right: 4px; }
+
+/* ----- Neuer Text zum Vorlesen ----- */
+.text-eingabe { width: 100%; min-height: 220px; padding: 12px 14px; border-radius: var(--r2); border: 1px solid var(--rand);
+                background: var(--flaeche); color: var(--text); font: inherit; line-height: 1.6; resize: vertical; }
+.text-eingabe.niedrig { min-height: 150px; }
+
+/* ----- Stimmen: Angaben und Gewinnen aus einer Aufnahme ----- */
+.stimme-angabe { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 12px; font-size: var(--klein); }
+.stimme-angabe dt { color: var(--text-3); }
+.stimme-angabe dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.referenztext { font-size: var(--klein); color: var(--text-2); line-height: 1.55; background: var(--flaeche-2); border-radius: var(--r2); padding: 8px 10px; }
+.kandidaten { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 1020px; }
+.kandidat { background: var(--flaeche); border-radius: var(--r3); box-shadow: var(--schatten); padding: 12px 14px; border: 2px solid transparent; }
+.kandidat.gewaehlt { border-color: var(--akzent); }
+.kandidat .kopfzeile { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.kandidat .welle { height: 46px; }
+.kandidat .wertung { display: grid; grid-template-columns: 90px minmax(0, 1fr) 40px; gap: 4px 10px; align-items: center; font-size: var(--marke); color: var(--text-3); margin: 8px 0; }
+.kandidat .satzprobe { font-size: var(--klein); color: var(--text-2); font-style: italic; }

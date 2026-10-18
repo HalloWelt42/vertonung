@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="de" data-theme="hell">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vertonung - Entwürfe am Rechner</title>
+    <link rel="stylesheet" href="kopf.css" />
+  </head>
+  <body>
+    <!-- Kopf, Navigation und Aufträge kommen aus der Schale des Appkerns. Hier nur die Seiten der App.
+         Stimmen in den Bildern nur mit Katalog-Namen. -->
+
+    <p class="zustand-titel" style="margin-top:0">1. Vertonen: alle Vertonungen mit Art, Stimmen und Stand; neu als Vorlesen, Dialog oder Zeitgenau (Quelle aus dem Zweig der App oder aus der ganzen Kellerwolke)</p>
+    <div class="fenster">
+      <header class="kopf" data-erzeugen></header>
+      <div></div>
+      <div class="geruest">
+        <nav class="nav" data-aktiv="vertonen"></nav>
+        <section class="seite">
+          <div class="seiten-kopf">
+            <h1>Vertonen</h1>
+            <span class="segment"><span class="aktiv">Alle 6</span><span>Vorlesen 3</span><span>Dialog 1</span><span>Zeitgenau 2</span></span>
+            <span class="suche" style="min-width:200px"><i class="fa-solid fa-magnifying-glass"></i>Name suchen</span>
+            <span style="margin-left:auto; display:flex; gap:8px">
+              <button class="knopf primaer"><i class="fa-solid fa-book-open-reader"></i> Vorlesen</button>
+              <button class="knopf"><i class="fa-solid fa-comments"></i> Dialog</button>
+              <button class="knopf"><i class="fa-solid fa-clock"></i> Zeitgenau</button>
+            </span>
+          </div>
+          <div class="rollfeld">
+            <div class="zeile"><span class="art"><i class="fa-solid fa-clock"></i></span>
+              <div style="min-width:0"><div class="name">Folge 12: Gespräch mit der Hausverwaltung</div><div class="meta">Zeitgenau · 3 Rollen · 45:12 · neben Apps/Transkription/Aufnahmen</div></div>
+              <span class="stand-pille laeuft"><i class="fa-solid fa-circle-notch fa-spin"></i> Sprechen 61 %</span><span></span></div>
+            <div class="zeile"><span class="art"><i class="fa-solid fa-comments"></i></span>
+              <div style="min-width:0"><div class="name">Hörspiel Szene 3</div><div class="meta">Dialog · Erzähler, Mara, Jonas · 6:05 · Texte</div></div>
+              <span class="stand-pille warn">3 geändert</span><button class="knopf still"><i class="fa-solid fa-microphone"></i> Geänderte sprechen</button></div>
+            <div class="zeile"><span class="art"><i class="fa-solid fa-book-open-reader"></i></span>
+              <div style="min-width:0"><div class="name">Brief an die Hausverwaltung</div><div class="meta">Vorlesen · Kerstin · 2:41 · MP3 neben dem Text · heute 09:12</div></div>
+              <span class="stand-pille fertig">fertig</span><button class="knopf still"><i class="fa-solid fa-play"></i> Anhören</button></div>
+            <div class="zeile"><span class="art"><i class="fa-solid fa-clock"></i></span>
+              <div style="min-width:0"><div class="name">Vortrag Stadtrat</div><div class="meta">Zeitgenau · Karlsson · 2:14:08 · neben Dokumente/Stadtrat</div></div>
+              <span class="stand-pille fertig">fertig, 5 Hinweise</span><button class="knopf still"><i class="fa-solid fa-play"></i> Anhören</button></div>
+            <div class="zeile"><span class="art"><i class="fa-solid fa-book-open-reader"></i></span>
+              <div style="min-width:0"><div class="name">Kapitel 1</div><div class="meta">Vorlesen · Thorsten · 24:50 · Texte/Hörbuch</div></div>
+              <span class="stand-pille fertig">fertig</span><button class="knopf still"><i class="fa-solid fa-play"></i> Anhören</button></div>
+            <div class="zeile"><span class="art"><i class="fa-solid fa-book-open-reader"></i></span>
+              <div style="min-width:0"><div class="name">Rezept Linsensuppe</div><div class="meta">Vorlesen · aiden (Katalog) · 1:12 · gestern</div></div>
+              <span class="stand-pille fertig">fertig</span><button class="knopf still"><i class="fa-solid fa-play"></i> Anhören</button></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <p class="zustand-titel">2. Vorlesen: Stimme, Tempo und Format oben; der Plan zeigt die Sätze, jeder einzeln anhörbar; das Ergebnis liegt als MP3 neben dem Text</p>
+    <div class="fenster">
+      <header class="kopf" data-erzeugen></header>
+      <div></div>
+      <div class="geruest mit-leiste">
+        <nav class="nav" data-aktiv="vertonen"></nav>
+        <section class="seite">
+          <div class="seiten-kopf">
+            <button class="knopf still" style="padding:0 6px"><i class="fa-solid fa-chevron-left"></i> Vertonen</button>
+            <h1>Brief an die Hausverwaltung</h1>
+            <span style="margin-left:auto; display:flex; gap:8px">
+              <button class="knopf"><i class="fa-solid fa-pen"></i> Text ändern</button>
+              <button class="knopf primaer"><i class="fa-solid fa-microphone"></i> Sprechen</button>
+            </span>
+          </div>
+          <div class="spieler">
+            <button class="gross" title="Anhalten (Leertaste)"><i class="fa-solid fa-pause"></i></button>
+            <span class="knopfreihe"><button class="rund" title="Satz zurück"><i class="fa-solid fa-backward-step"></i></button><button class="rund" title="Satz vor"><i class="fa-solid fa-forward-step"></i></button></span>
+            <div class="welle" data-kopf="0.32" data-saeulen="110"></div>
+            <span class="zeitangabe">00:51 / 02:41</span>
+            <button class="knopf" title="Tempo beim Anhören"><i class="fa-solid fa-gauge"></i> 100 %</button>
+          </div>
+          <div class="rollfeld" style="padding-top:14px">
+            <div class="optionen">
+              <span class="titel"><i class="fa-solid fa-book-open-reader"></i> Vorlesen mit</span>
+              <label>Stimme <span class="auswahl-knopf">Kerstin · fremd <i class="fa-solid fa-chevron-down"></i></span></label>
+              <label>Tempo <span class="auswahl-knopf">100 % <i class="fa-solid fa-chevron-down"></i></span></label>
+              <label>Format <span class="auswahl-knopf">MP3, 24 kHz mono <i class="fa-solid fa-chevron-down"></i></span></label>
+            </div>
+            <div class="abschnitte">
+              <div class="plan-zeile ohne-rolle"><span class="nr">1</span><div class="satz">Sehr geehrte Damen und Herren,<div class="unter"><span class="dauer">0:02,1</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile ohne-rolle"><span class="nr">2</span><div class="satz">vielen Dank für die Nebenkostenabrechnung für das Jahr 2025, die mich am 12. September erreicht hat.<div class="unter"><span class="dauer">0:06,8</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile ohne-rolle jetzt"><span class="nr">3</span><div class="satz">Die Nachzahlung ist fast doppelt so hoch wie im Vorjahr, und aus der Abrechnung geht nicht hervor, welche Posten gestiegen sind, obwohl sich an der Wohnung und ihrer Nutzung nichts geändert hat.<div class="unter"><span class="dauer">0:11,4</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund aktiv" title="Spielt"><i class="fa-solid fa-volume-high"></i></button></div>
+              <div class="plan-zeile ohne-rolle"><span class="nr">4</span><div class="satz">Ich bitte Sie deshalb, mir die Belege für Grundsteuer, Müllabfuhr und Hausreinigung zu schicken.<div class="unter"><span class="dauer">0:06,2</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile ohne-rolle"><span class="nr">5</span><div class="satz">Gern sehe ich sie mir auch bei Ihnen vor Ort an.<div class="unter"><span class="dauer">0:03,0</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile ohne-rolle"><span class="nr">6</span><div class="satz">Mit freundlichen Grüßen<div class="unter"><span class="dauer">0:01,6</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+            </div>
+          </div>
+        </section>
+        <aside class="leiste">
+          <div class="rollfeld" style="padding:0">
+            <div class="gruppe">
+              <h3>Quelle</h3>
+              <div class="liste-klein"><div><i class="fa-solid fa-file-lines" style="color:var(--text-3)"></i><span>Texte/Brief an die Hausverwaltung.md</span></div></div>
+            </div>
+            <div class="gruppe">
+              <h3>Ergebnis</h3>
+              <div class="liste-klein"><div><i class="fa-solid fa-file-audio" style="color:var(--akzent)"></i><span>Brief an die Hausverwaltung.sprache.mp3 · 2:41 · neben dem Text</span></div></div>
+              <div class="knopfreihe"><button class="knopf klein"><i class="fa-solid fa-cloud"></i> In der Kellerwolke zeigen</button><button class="knopf klein"><i class="fa-solid fa-download"></i> Herunterladen</button></div>
+            </div>
+            <div class="gruppe">
+              <h3>Bericht</h3>
+              <div class="liste-klein">
+                <div><i class="fa-solid fa-check" style="color:var(--gut)"></i><span>6 Sätze gesprochen, 1 davon im zweiten Versuch</span></div>
+                <div><i class="fa-solid fa-check" style="color:var(--gut)"></i><span>keine Ersatzstimme</span></div>
+                <div><i class="fa-solid fa-scissors" style="color:var(--text-3)"></i><span>Satz 3 in zwei Stücken (über 180 Zeichen), nahtlos gefügt</span></div>
+              </div>
+            </div>
+            <div class="gruppe">
+              <h3>Versionen des Plans</h3>
+              <div class="liste-klein">
+                <div><span class="zeit">heute</span><span><b>2</b> · 09:12 · Stimme Kerstin statt serena</span></div>
+                <div><span class="zeit">gestern</span><span><b>1</b> · angelegt aus dem Text</span></div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <p class="zustand-titel">3. Dialog: Rollen oben mit Stimme und Probe; die Stimme von Jonas wurde getauscht, seine drei Abschnitte sind als geändert markiert, gesprochen wird nur, was sich geändert hat</p>
+    <div class="fenster">
+      <header class="kopf" data-erzeugen></header>
+      <div></div>
+      <div class="geruest">
+        <nav class="nav" data-aktiv="vertonen"></nav>
+        <section class="seite">
+          <div class="seiten-kopf">
+            <button class="knopf still" style="padding:0 6px"><i class="fa-solid fa-chevron-left"></i> Vertonen</button>
+            <h1>Hörspiel Szene 3</h1>
+            <span style="margin-left:auto; display:flex; gap:8px">
+              <button class="knopf"><i class="fa-solid fa-pen"></i> Text ändern</button>
+              <button class="knopf primaer"><i class="fa-solid fa-microphone"></i> Geänderte sprechen (3)</button>
+            </span>
+          </div>
+          <div class="spieler">
+            <button class="gross" title="Abspielen (Leertaste)"><i class="fa-solid fa-play"></i></button>
+            <span class="knopfreihe"><button class="rund" title="Abschnitt zurück"><i class="fa-solid fa-backward-step"></i></button><button class="rund" title="Abschnitt vor"><i class="fa-solid fa-forward-step"></i></button></span>
+            <div class="welle" data-kopf="0" data-saeulen="110" data-spur="s1:6 s2:9 s3:5 s2:7 s1:4 s3:8 s2:6"></div>
+            <span class="zeitangabe">00:00 / 06:05</span>
+            <button class="knopf" title="Tempo beim Anhören"><i class="fa-solid fa-gauge"></i> 100 %</button>
+          </div>
+          <div class="rollfeld" style="padding-top:14px">
+            <div class="rollen">
+              <div class="rollen-karte"><span class="sprecher"><span class="punkt" style="background:var(--s1)"></span>Erzähler</span><span class="auswahl-knopf">serena · Katalog <i class="fa-solid fa-chevron-down"></i></span><button class="rund" title="Probe"><i class="fa-solid fa-play"></i></button></div>
+              <div class="rollen-karte"><span class="sprecher"><span class="punkt" style="background:var(--s2)"></span>Mara</span><span class="auswahl-knopf">Eva K. · fremd <i class="fa-solid fa-chevron-down"></i></span><button class="rund" title="Probe"><i class="fa-solid fa-play"></i></button></div>
+              <div class="rollen-karte"><span class="sprecher"><span class="punkt" style="background:var(--s3)"></span>Jonas</span><span class="auswahl-knopf">Thorsten · fremd <i class="fa-solid fa-chevron-down"></i></span><button class="rund" title="Probe"><i class="fa-solid fa-play"></i></button></div>
+              <button class="knopf still"><i class="fa-solid fa-plus"></i> Rolle</button>
+            </div>
+            <div class="abschnitte">
+              <div class="plan-zeile"><span class="nr">1</span><span class="sprecher"><span class="punkt" style="background:var(--s1)"></span>Erzähler</span><div class="satz">Es ist kurz nach Mitternacht. Im Hof brennt nur noch eine Laterne.<div class="unter"><span class="dauer">0:04,9</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile"><span class="nr">2</span><span class="sprecher"><span class="punkt" style="background:var(--s2)"></span>Mara</span><div class="satz">Hast du das gehört? Da war jemand an der Tür.<div class="unter"><span class="dauer">0:02,8</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile geaendert"><span class="nr">3</span><span class="sprecher"><span class="punkt" style="background:var(--s3)"></span>Jonas</span><div class="satz">Das war der Wind. Schlaf weiter.<div class="unter"><span class="dauer">0:02,1</span><span class="stand-pille warn">geändert</span></div></div><button class="rund" title="Alte Fassung anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile"><span class="nr">4</span><span class="sprecher"><span class="punkt" style="background:var(--s2)"></span>Mara</span><div class="satz">Der Wind klopft nicht dreimal.<div class="unter"><span class="dauer">0:02,0</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile"><span class="nr">5</span><span class="sprecher"><span class="punkt" style="background:var(--s1)"></span>Erzähler</span><div class="satz">Jonas setzt sich auf. Unten auf der Treppe knarrt eine Stufe, dann noch eine.<div class="unter"><span class="dauer">0:05,3</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile geaendert"><span class="nr">6</span><span class="sprecher"><span class="punkt" style="background:var(--s3)"></span>Jonas</span><div class="satz">Bleib hier. Ich sehe nach.<div class="unter"><span class="dauer">0:01,9</span><span class="stand-pille warn">geändert</span></div></div><button class="rund" title="Alte Fassung anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile"><span class="nr">7</span><span class="sprecher"><span class="punkt" style="background:var(--s2)"></span>Mara</span><div class="satz">Nimm wenigstens die Taschenlampe mit.<div class="unter"><span class="dauer">0:02,2</span><span class="stand-pille fertig">gesprochen</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile geaendert"><span class="nr">8</span><span class="sprecher"><span class="punkt" style="background:var(--s3)"></span>Jonas</span><div class="satz">Die Batterien sind leer. Seit Wochen schon.<div class="unter"><span class="dauer">0:02,6</span><span class="stand-pille warn">geändert</span></div></div><button class="rund" title="Alte Fassung anhören"><i class="fa-solid fa-play"></i></button></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <p class="zustand-titel">4. Zeitgenau nach einem Transkript: Spur der Quelle und der neuen Sprache übereinander; je Abschnitt der Bericht (Lücke genutzt, gestaucht, geschoben, Ersatzstimme); gefiltert auf die Abschnitte mit Hinweis</p>
+    <div class="fenster">
+      <header class="kopf" data-erzeugen></header>
+      <div></div>
+      <div class="geruest mit-leiste">
+        <nav class="nav" data-aktiv="vertonen"></nav>
+        <section class="seite">
+          <div class="seiten-kopf">
+            <button class="knopf still" style="padding:0 6px"><i class="fa-solid fa-chevron-left"></i> Vertonen</button>
+            <h1 class="titel-lang">Folge 12: Gespräch mit der Hausverwaltung</h1>
+            <span class="segment" style="margin-left:auto"><span>Alle 214</span><span class="aktiv">Mit Hinweis 5</span></span>
+          </div>
+          <div class="spieler">
+            <button class="gross" title="Abspielen (Leertaste)"><i class="fa-solid fa-play"></i></button>
+            <span class="knopfreihe"><button class="rund" title="Neu und Original im Wechsel"><i class="fa-solid fa-right-left"></i></button></span>
+            <div class="welle" data-kopf="0.111" data-saeulen="110" data-spur="s1:8 s2:14 s1:5 s3:9 s2:20 s1:12 s3:6 s2:26"></div>
+            <span class="zeitangabe">05:01 / 45:12</span>
+            <button class="knopf" title="Was zu hören ist"><i class="fa-solid fa-headphones"></i> Neu</button>
+          </div>
+          <div class="rollfeld" style="padding-top:14px">
+            <div class="spuren">
+              <div class="spuren-zeile"><span class="name">Original</span>
+                <div class="spur"><span class="stueck" style="left:2%; width:14%"></span><span class="stueck" style="left:18%; width:16%"></span><span class="stueck" style="left:37%; width:9%"></span><span class="stueck" style="left:48%; width:15%"></span><span class="stueck" style="left:66%; width:6%"></span><span class="stueck" style="left:74%; width:12%"></span><span class="stueck" style="left:88%; width:10%"></span><span class="kopf-linie" style="left:50.8%"></span></div></div>
+              <div class="spuren-zeile"><span class="name">Neu, Deutsch</span>
+                <div class="spur"><span class="stueck neu" style="left:2%; width:13%"></span><span class="stueck neu" style="left:18%; width:17%"></span><span class="stueck gestaucht" style="left:37%; width:10%"></span><span class="stueck neu" style="left:48%; width:14%"></span><span class="stueck geschoben" style="left:63.5%; width:9%"></span><span class="stueck neu" style="left:74%; width:12%"></span><span class="stueck neu" style="left:88%; width:9%"></span><span class="kopf-linie" style="left:50.8%"></span></div></div>
+              <div class="spuren-legende"><span><i class="fa-solid fa-square" style="color:var(--akzent); opacity:.8"></i>passt ins Zeitfenster</span><span><i class="fa-solid fa-square" style="color:var(--akzent)"></i>gestaucht</span><span><i class="fa-solid fa-square" style="color:var(--warn)"></i>geschoben</span><span>Ausschnitt 04:00 bis 06:00 · nie gekürzt, nie abgeschnitten</span></div>
+            </div>
+            <div class="abschnitte">
+              <div class="plan-zeile"><span class="nr">37</span><span class="sprecher"><span class="punkt" style="background:var(--s2)"></span>Herr Krüger</span><div class="satz">Grundsteuer und Müll sind in den Nebenkosten gestiegen, das liegt nicht an uns, ich schicke Ihnen die Bescheide gern mit.<div class="unter"><span class="dauer">05:01 bis 05:11</span><span class="stand-pille laeuft">gestaucht 1,12</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile"><span class="nr">41</span><span class="sprecher"><span class="punkt" style="background:var(--s3)"></span>Sprecher 3</span><div class="satz">Dürfen wir die Belege auch vor Ort einsehen? Das steht uns ja zu.<div class="unter"><span class="dauer">05:19 bis 05:24</span><span class="stand-pille offen">Lücke genutzt</span><span class="stand-pille warn">geschoben +0,4 s</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile"><span class="nr">88</span><span class="sprecher"><span class="punkt" style="background:var(--s1)"></span>Anna</span><div class="satz">Und wer hat entschieden, dass die Hausreinigung jetzt von einer anderen Firma gemacht wird, die fast das Doppelte verlangt?<div class="unter"><span class="dauer">19:40 bis 19:47</span><span class="stand-pille laeuft">gestaucht 1,31</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile"><span class="nr">153</span><span class="sprecher"><span class="punkt" style="background:var(--s2)"></span>Herr Krüger</span><div class="satz">Die Eigentümerversammlung, im März.<div class="unter"><span class="dauer">32:02 bis 32:04</span><span class="stand-pille warn">Ersatzstimme serena</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+              <div class="plan-zeile"><span class="nr">201</span><span class="sprecher"><span class="punkt" style="background:var(--s1)"></span>Anna</span><div class="satz">Gut, dann machen wir für nächste Woche einen Termin aus, und ich bringe die Abrechnung vom Vorjahr mit.<div class="unter"><span class="dauer">43:58 bis 44:05</span><span class="stand-pille warn">geschoben +0,9 s</span></div></div><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button></div>
+            </div>
+          </div>
+        </section>
+        <aside class="leiste">
+          <div class="rollfeld" style="padding:0">
+            <div class="gruppe">
+              <h3>Rollen aus dem Transkript</h3>
+              <div class="liste-klein">
+                <div><span class="sprecher"><span class="punkt" style="background:var(--s1)"></span>Anna</span><span class="auswahl-knopf" style="margin-left:auto">Kerstin <i class="fa-solid fa-chevron-down"></i></span></div>
+                <div><span class="sprecher"><span class="punkt" style="background:var(--s2)"></span>Herr Krüger</span><span class="auswahl-knopf" style="margin-left:auto">Karlsson <i class="fa-solid fa-chevron-down"></i></span></div>
+                <div><span class="sprecher"><span class="punkt" style="background:var(--s3)"></span>Sprecher 3</span><span class="auswahl-knopf" style="margin-left:auto">Ramona <i class="fa-solid fa-chevron-down"></i></span></div>
+              </div>
+            </div>
+            <div class="gruppe">
+              <h3>Bericht</h3>
+              <div class="liste-klein">
+                <div><i class="fa-solid fa-check" style="color:var(--gut)"></i><span>209 von 214 im Zeitfenster, 198 davon in Lücken</span></div>
+                <div><i class="fa-solid fa-compress" style="color:var(--akzent)"></i><span>11 gestaucht, höchstens 1,31 (Grenze 1,5)</span></div>
+                <div><i class="fa-solid fa-arrow-right" style="color:var(--warn)"></i><span>4 geschoben, höchstens 0,9 s</span></div>
+                <div><i class="fa-solid fa-triangle-exclamation" style="color:var(--warn)"></i><span>1 mit Ersatzstimme nach drei Versuchen</span></div>
+              </div>
+            </div>
+            <div class="gruppe">
+              <h3>Ergebnis</h3>
+              <div class="liste-klein"><div><i class="fa-solid fa-file-audio" style="color:var(--akzent)"></i><span>Folge 12.sprache.wav · 48 kHz stereo wie die Aufnahme · neben ihr</span></div></div>
+              <div class="knopfreihe"><button class="knopf klein"><i class="fa-solid fa-cloud"></i> In der Kellerwolke zeigen</button></div>
+            </div>
+            <div class="gruppe">
+              <h3>Quelle</h3>
+              <div class="liste-klein"><div><i class="fa-solid fa-closed-captioning" style="color:var(--text-3)"></i><span>Folge 12.transkript.json, Version 4</span></div></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <p class="zustand-titel">5. Stimmen: Reiter Privat, Fremd und Katalog; rechts die Angaben der gewählten Stimme mit Herkunft, Referenztext und Sprecherprofil der Transkription</p>
+    <div class="fenster">
+      <header class="kopf" data-erzeugen></header>
+      <div></div>
+      <div class="geruest mit-leiste">
+        <nav class="nav" data-aktiv="stimmen"></nav>
+        <section class="seite">
+          <div class="seiten-kopf">
+            <h1>Stimmen</h1>
+            <span class="segment"><span>Privat 12</span><span class="aktiv">Fremd 31</span><span>Katalog 9</span></span>
+            <span class="suche" style="min-width:180px"><i class="fa-solid fa-magnifying-glass"></i>Name suchen</span>
+            <span style="margin-left:auto; display:flex; gap:8px">
+              <button class="knopf" title="Eine Probe mit dem Mikrofon aufnehmen"><i class="fa-solid fa-circle-dot" style="color:var(--gefahr)"></i> Aufnehmen</button>
+              <button class="knopf" title="Die beste Probe einer Person aus einer Aufnahme der Kellerwolke suchen"><i class="fa-solid fa-wand-magic-sparkles"></i> Aus Aufnahme</button>
+              <button class="knopf primaer"><i class="fa-solid fa-upload"></i> Hochladen</button>
+            </span>
+          </div>
+          <div class="rollfeld">
+            <div class="hinweis-band"><i class="fa-solid fa-shield-halved"></i><span>Private Stimmen gehören Menschen aus deinem Umfeld: nutzbar nur für die Apps, die du in den Einstellungen erlaubst, nie für Öffentliches.</span></div>
+            <div class="zeile gewaehlt"><span class="art"><i class="fa-solid fa-user"></i></span>
+              <div style="min-width:0"><div class="name">Kerstin</div><div class="meta">Deutsch · 8,2 s · aus Folge 12 · bekannt als Kerstin K.</div></div>
+              <span class="stand-pille offen">4 Vertonungen</span><button class="rund" title="Probe anhören"><i class="fa-solid fa-play"></i></button></div>
+            <div class="zeile"><span class="art"><i class="fa-solid fa-user"></i></span>
+              <div style="min-width:0"><div class="name">Karlsson</div><div class="meta">Deutsch · 7,1 s · aus Interview Bauamt</div></div>
+              <span class="stand-pille offen">2 Vertonungen</span><button class="rund" title="Probe anhören"><i class="fa-solid fa-play"></i></button></div>
+            <div class="zeile"><span class="art"><i class="fa-solid fa-user"></i></span>
+              <div style="min-width:0"><div class="name">Eva K.</div><div class="meta">Deutsch · 9,6 s · hochgeladen</div></div>
+              <span class="stand-pille offen">1 Vertonung</span><button class="rund" title="Probe anhören"><i class="fa-solid fa-play"></i></button></div>
+            <div class="zeile"><span class="art"><i class="fa-solid fa-user"></i></span>
+              <div style="min-width:0"><div class="name">Ramona</div><div class="meta">Deutsch · 6,4 s · aus Vortrag Stadtrat</div></div>
+              <span class="stand-pille offen">1 Vertonung</span><button class="rund" title="Probe anhören"><i class="fa-solid fa-play"></i></button></div>
+            <div class="zeile"><span class="art"><i class="fa-solid fa-user"></i></span>
+              <div style="min-width:0"><div class="name">Thorsten</div><div class="meta">Deutsch · 8,8 s · übernommen aus der alten App</div></div>
+              <span class="stand-pille offen">3 Vertonungen</span><button class="rund" title="Probe anhören"><i class="fa-solid fa-play"></i></button></div>
+            <div class="zeile"><span class="art"><i class="fa-solid fa-user"></i></span>
+              <div style="min-width:0"><div class="name">Pavoque</div><div class="meta">Deutsch · 5,9 s · übernommen aus der alten App</div></div>
+              <span class="stand-pille offen">nicht benutzt</span><button class="rund" title="Probe anhören"><i class="fa-solid fa-play"></i></button></div>
+          </div>
+        </section>
+        <aside class="leiste">
+          <div class="leiste-kopf"><h2 style="margin:0">Kerstin</h2></div>
+          <div class="rollfeld" style="padding:0">
+            <div class="gruppe">
+              <h3>Probe</h3>
+              <div class="spieler" style="padding:0; box-shadow:none; grid-template-columns:auto minmax(0, 1fr) auto; background:transparent">
+                <button class="gross" title="Probe anhören"><i class="fa-solid fa-play"></i></button>
+                <div class="welle" data-kopf="0" data-saeulen="44"></div>
+                <span class="zeitangabe">8,2 s</span>
+              </div>
+              <p class="referenztext">Heute zeige ich euch, wie man die Abrechnung Schritt für Schritt prüft, und worauf ihr bei den Umlagen achten solltet.</p>
+            </div>
+            <div class="gruppe">
+              <h3>Angaben</h3>
+              <dl class="stimme-angabe">
+                <dt>Bereich</dt><dd><span class="auswahl-knopf">Fremd <i class="fa-solid fa-chevron-down"></i></span></dd>
+                <dt>Sprache</dt><dd>Deutsch</dd>
+                <dt>Bekannt als</dt><dd><span class="chips"><span class="chip">Kerstin K.</span><span class="chip">Sprecherin Kanal 2</span></span></dd>
+                <dt>Herkunft</dt><dd>Apps/Transkription/Aufnahmen/Folge 12.wav, 01:01 bis 01:08 <button class="knopf klein still"><i class="fa-solid fa-up-right-from-square"></i> In der Quelle</button></dd>
+                <dt>Sprecherprofil</dt><dd>Kerstin (Transkription), dieselbe Person</dd>
+              </dl>
+            </div>
+            <div class="gruppe">
+              <h3>Benutzt in</h3>
+              <div class="liste-klein">
+                <div><i class="fa-solid fa-clock" style="color:var(--text-3)"></i><span>Folge 12: Gespräch mit der Hausverwaltung</span></div>
+                <div><i class="fa-solid fa-book-open-reader" style="color:var(--text-3)"></i><span>Brief an die Hausverwaltung</span></div>
+              </div>
+              <div class="knopfreihe"><button class="knopf klein still"><i class="fa-solid fa-pen"></i> Umbenennen</button><button class="knopf klein still"><i class="fa-solid fa-trash-can"></i> In den Papierkorb</button></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <p class="zustand-titel">6. Stimme gewinnen: aus einer Aufnahme der Kellerwolke (Transkript vorhanden, zwei Sprecher); Kandidaten eines Sprechers ohne Überlappung, mit Bewertung; einen anhören und übernehmen</p>
+    <div class="fenster">
+      <header class="kopf" data-erzeugen></header>
+      <div></div>
+      <div class="geruest">
+        <nav class="nav" data-aktiv="stimmen"></nav>
+        <section class="seite">
+          <div class="seiten-kopf">
+            <button class="knopf still" style="padding:0 6px"><i class="fa-solid fa-chevron-left"></i> Stimmen</button>
+            <h1>Stimme gewinnen</h1>
+            <span class="segment" style="margin-left:auto"><span class="aktiv">Sprecher 1</span><span>Sprecher 2</span></span>
+          </div>
+          <div class="rollfeld">
+            <div class="hinweis-band"><i class="fa-solid fa-file-audio"></i><span><b>Interview Bauamt.mp3</b> aus Dokumente/Presse, 44,1 kHz stereo · Transkript vorhanden, 2 Sprecher · die Probe kommt aus der Originalaufnahme</span></div>
+            <div class="kandidaten">
+              <div class="kandidat gewaehlt">
+                <div class="kopfzeile"><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button><b>03:12 bis 03:19</b><span class="stand-pille fertig" style="margin-left:auto">am saubersten</span></div>
+                <div class="welle" data-kopf="0" data-saeulen="60"></div>
+                <div class="wertung"><span>Sauberkeit</span><div class="balken"><span style="width:92%"></span></div><span>92 %</span><span>Pegel</span><div class="balken"><span style="width:80%"></span></div><span>gut</span></div>
+                <div class="satzprobe">"Die Genehmigung liegt seit Juli bei uns, es fehlt nur noch die Statik."</div>
+              </div>
+              <div class="kandidat">
+                <div class="kopfzeile"><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button><b>11:40 bis 11:47</b></div>
+                <div class="welle" data-kopf="0" data-saeulen="60"></div>
+                <div class="wertung"><span>Sauberkeit</span><div class="balken"><span style="width:84%"></span></div><span>84 %</span><span>Pegel</span><div class="balken"><span style="width:62%"></span></div><span>leise</span></div>
+                <div class="satzprobe">"Wir prüfen jeden Antrag in der Reihenfolge, in der er bei uns eingeht."</div>
+              </div>
+              <div class="kandidat">
+                <div class="kopfzeile"><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button><b>18:03 bis 18:09</b></div>
+                <div class="welle" data-kopf="0" data-saeulen="60"></div>
+                <div class="wertung"><span>Sauberkeit</span><div class="balken"><span style="width:77%"></span></div><span>77 %</span><span>Pegel</span><div class="balken"><span style="width:85%"></span></div><span>gut</span></div>
+                <div class="satzprobe">"Das kann ich Ihnen so pauschal nicht sagen."</div>
+              </div>
+              <div class="kandidat">
+                <div class="kopfzeile"><button class="rund" title="Anhören"><i class="fa-solid fa-play"></i></button><b>24:51 bis 24:58</b></div>
+                <div class="welle" data-kopf="0" data-saeulen="60"></div>
+                <div class="wertung"><span>Sauberkeit</span><div class="balken"><span style="width:71%"></span></div><span>71 %</span><span>Pegel</span><div class="balken"><span style="width:90%"></span></div><span>gut</span></div>
+                <div class="satzprobe">"Kommen Sie gern mit den Unterlagen vorbei, dann schauen wir gemeinsam."</div>
+              </div>
+            </div>
+            <div class="optionen" style="margin-top:16px; max-width:1020px">
+              <span class="titel"><i class="fa-solid fa-user-plus"></i> 03:12 bis 03:19 als Stimme</span>
+              <label>Name <span class="eingabe" style="width:180px; height:38px">Karlsson</span></label>
+              <label>Bereich <span class="segment"><span>Privat</span><span class="aktiv">Fremd</span></span></label>
+              <span class="knopfzeile" style="margin-left:auto"><button class="knopf primaer"><i class="fa-solid fa-check"></i> Als Stimme anlegen</button></span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="gemeinsam.js"></script>
+  </body>
+</html>
