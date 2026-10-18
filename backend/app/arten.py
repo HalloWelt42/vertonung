@@ -40,19 +40,18 @@ class VertonenEingabe(BaseModel):
 
 async def quelle_messen(teile: Teile, kw: Kellerwolke, haupt_id: UUID, ordner: Path) -> tuple[Tonformat, float]:
     """Rate, Kanäle und Dauer der Aufnahme: erst aus dem Anfang der Datei, sonst aus der ganzen."""
-    ton = teile.ton_jetzt
     knoten = await kw.knoten(haupt_id)
     kopf = ordner / f"quelle{Path(knoten.name).suffix.lower()}"
     with open(kopf, "wb") as datei:
         async for stueck in kw.lesen(haupt_id, start=0, ende=KOPF_BYTES - 1):
             datei.write(stueck)
     try:
-        e = await ton.eigenschaften(kopf)
+        e = await teile.ton.eigenschaften(kopf, titel=f"{knoten.name}, messen")
         if not (e.rate and e.kanaele) or (knoten.groesse or 0) > KOPF_BYTES and e.dauer_s <= 0:
             raise ValueError("Kopf reicht nicht")
     except Exception:  # noqa: BLE001 - etwa MP4 mit dem Inhaltsverzeichnis am Ende: dann die ganze Datei
         await kw.herunterladen(haupt_id, kopf)
-        e = await ton.eigenschaften(kopf)
+        e = await teile.ton.eigenschaften(kopf, titel=f"{knoten.name}, messen")
     dauer = knoten.felder.get("dauer_s") or e.dauer_s
     return Tonformat(rate=e.rate or 48000, kanaele=min(e.kanaele or 2, 8), kodierung="pcm_s16le"), float(dauer)
 
@@ -120,18 +119,18 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
         format, endung = ziel_format(plan.art, plan.ziel.format, einst.mp3_bitrate, quelle)
         ziel = ordner / f"ergebnis{endung}"
 
-        async def sprechen(p: Plan, von: float, bis: float) -> Plan:
+        async def sprechen(p: Plan, von: float, bis: float):
             async def fortschritt(anteil: float, text: str) -> None:
                 await k.fortschritt(von + (bis - von) * anteil, text, phase="sprechen")
 
-            g = await teile.werk().ausfuehren(p, stimme=teile.gewaehlt, speicher=teile.speicher(plan_id), ziel=ziel,
-                                              format=format, fortschritt=fortschritt, pruefen=k.pruefen,
-                                              komfort=einst.komfort, hoechstens=einst.hoechstens)
+            g, gelegt = await teile.werk().ausfuehren(p, stimme=teile.gewaehlt, speicher=teile.speicher(plan_id), ziel=ziel,
+                                                      format=format, fortschritt=fortschritt, pruefen=k.pruefen,
+                                                      komfort=einst.komfort, hoechstens=einst.hoechstens)
             schluessel = {r.kennung: await teile.tempo_schluessel(r, p.sprache) for r in p.rollen}
             await teile.tempo.messen(frisch_gesprochen(p, g, schluessel))
-            return g
+            return g, gelegt
 
-        gelaufen = await sprechen(plan, 0.22, 0.86)
+        gelaufen, gelegt = await sprechen(plan, 0.22, 0.86)
         # Übersetztes, das trotz stärkstem Stauchen nicht in seine Zeit passt: einmal knapper fassen, neu sprechen
         lang = zu_lang(gelaufen, set(k.zwischenstand.get("uebersetzt", [])), einst.hoechstens) if ls else []
         if lang:
@@ -143,14 +142,15 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
                 if a.nr in knapper:
                     a.text = knapper[a.nr]
             if knapper:
-                gelaufen = await sprechen(gelaufen, 0.88, 0.91)
+                gelaufen, gelegt = await sprechen(gelaufen, 0.88, 0.91)
         if einst.aussprache_pruefen and ls:
             await k.fortschritt(0.91, "Aussprache prüfen", phase="sprechen")
-            await aussprache.pruefen(gelaufen, ziel, ordner / "aussprache", teile.ton_jetzt, teile.hoeren_woerter)
+            await aussprache.pruefen(gelaufen, ziel, gelegt.datei.dauer_s, ordner / "aussprache", teile.ton,
+                                     teile.hoeren_woerter)
         await k.fortschritt(0.92, "Ablegen", phase="ablegen")
         erg = await plaene.ergebnis_ablegen(haupt_id, ziel)
-        dauer_s = round(await teile.ton_jetzt.dauer(ziel), 2)
-        welle = await teile.ton_jetzt.wellenform(ziel, 400)
+        dauer_s = round(gelegt.datei.dauer_s, 2)
+        welle = gelegt.wellenform or []
         gelaufen.ergebnis = Ergebnis(knoten_id=erg.id, pfad=erg.pfad, dauer_s=dauer_s, erstellt_am=datetime.now(UTC),
                                      wellenform=welle)
         gelaufen.geaendert_am = datetime.now(UTC)

@@ -11,21 +11,21 @@ from uuid import UUID
 
 import json
 
-import numpy as np
 from pydantic import ValidationError
 
 from appkern.kellerwolke import Kellerwolke, Knoten, NichtGefunden
-from appkern.ton import Ton, Tonformat
+from appkern.ton import Aufbereiten, Ausgabe, LautWahl, Messen, Tonarbeit, Tonformat
 
 from ..modell.stimme import Bereich, StimmAngaben, Stimme, aus_alter_app
-from ..referenz import WortZeit, beste
-from ..werk import fuegen
+from ..referenz import FENSTER_S, WortZeit, beste
 from . import orte
 
 RATE = 24000
 REFERENZ = Tonformat(rate=RATE, kanaele=1, kodierung="pcm_s16le")
 LANG_S = 7.5                # bis hierhin bleibt eine Probe ganz; länger wird die beste Stelle gewählt (referenz.py)
 KANTE_MS, VORLAUF_MS, NACHLAUF_MS = 15, 40, 60
+SPITZE = 0.98
+STILLE = LautWahl(rate=RATE, schwelle_db=-45.0, rand_ms=40)
 
 
 class ProbeZuKurz(ValueError):
@@ -43,28 +43,28 @@ def zugang(liefern: Callable[[], Kellerwolke | None]) -> Kellerwolke:
     return kw
 
 
-async def probe_aufbereiten(ton: Ton, roh: Path, ziel: Path, mindestens_s: float,
+async def probe_aufbereiten(ton: Tonarbeit, roh: Path, ziel: Path, mindestens_s: float,
                             woerter: Callable[[Path], Awaitable[list[WortZeit]]]) -> tuple[float, str | None]:
     """Referenz aus einer Probe (Nutzer 18.10.2026: 5 bis 7 Sekunden, nie ein harter Schnitt im Wort). Bis LANG_S bleibt
     die Probe ganz; länger wird sie gehört (`woerter`) und die beste Stelle mit Pausen an beiden Rändern gewählt. Liefert
-    die Dauer und, wenn zugeschnitten wurde, den Referenztext genau dieser Stelle."""
-    werte = await ton.lesen(roh, RATE)
-    sprache = fuegen.stille_kuerzen(werte, RATE).size / RATE
+    die Dauer und, wenn zugeschnitten wurde, den Referenztext genau dieser Stelle. Gemessen und geschnitten wird im
+    Tondienst."""
+    m = (await ton.aufbereiten(roh, Aufbereiten(messen=Messen(laut=STILLE, pegel_ms=int(FENSTER_S * 1000))), [],
+                               titel="Stimmprobe messen")).messwerte
+    sprache = m.laut.dauer_s if m.laut else 0.0
     if sprache < mindestens_s:
         raise ProbeZuKurz(f"Die Probe hat nur {sprache:.1f} s Sprache; nötig sind mindestens {mindestens_s:.0f} s")
-    text = None
-    if werte.size / RATE > LANG_S:
-        gehoert = await woerter(roh)
-        k = beste(werte, RATE, gehoert, None)
+    text, von, bis = None, None, None
+    if m.eigenschaften.dauer_s > LANG_S:
+        k = beste(m.pegel, await woerter(roh), None)
         if k is None:
             raise ProbeZuKurz("In der Probe gibt es keine Stelle von 5 bis 7 Sekunden mit Pausen davor und danach; "
                               "bitte eine Aufnahme mit natürlichen Sprechpausen")
-        werte, text = werte[int(k.von * RATE): int(k.bis * RATE)], k.text
-    werte = fuegen.raender(fuegen.begrenzen(werte), RATE, KANTE_MS)
-    werte = np.concatenate([np.zeros(int(RATE * VORLAUF_MS / 1000), np.float32), werte,
-                            np.zeros(int(RATE * NACHLAUF_MS / 1000), np.float32)])
-    await ton.schreiben(werte, RATE, ziel, REFERENZ)
-    return round(werte.size / RATE, 2), text
+        von, bis, text = k.von, k.bis, k.text
+    erg = await ton.aufbereiten(roh, Aufbereiten(ausgaben=[Ausgabe(
+        format=REFERENZ, beginn_s=von, ende_s=bis, spitze=SPITZE, blende_ms=KANTE_MS, vorlauf_s=VORLAUF_MS / 1000,
+        nachlauf_s=NACHLAUF_MS / 1000)]), [ziel], titel="Stimmprobe zuschneiden")
+    return round(erg.ausgaben[0].dauer_s, 2), text
 
 
 def _angaben(inhalt: bytes, name: str) -> StimmAngaben:

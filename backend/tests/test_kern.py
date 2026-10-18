@@ -1,13 +1,11 @@
 """Kern ohne Netz: Sätze und Stücke, Pläne aus Text, Dialog, Transkript und Untertiteln, Stand je Abschnitt,
 Prüfen auf Aussetzer, Zeitlage, Fügen."""
 
-import numpy as np
 import pytest
 
 from app.modell.plan import StimmWahl
 from app.planen import Segment, aus_dialog, aus_segmenten, aus_text, segmente_aus_untertiteln, zusammenfassen
 from app.saetze import GRENZE, saetze, stuecke
-from app.werk import fuegen
 from app.werk.pruefen import befund
 from app.werk.zeitlage import Fenster, legen
 
@@ -106,21 +104,6 @@ def test_zeitlage():
     assert l[4].beginn == pytest.approx(8.0 + 4.0 / 1.5, abs=1e-3) and l[4].versatz_s > 0.6
     for a, b, fa in zip(l, l[1:], f):           # nie überlappend
         assert a.beginn + fa.dauer_s / a.stauchung <= b.beginn + 1e-6
-
-
-def test_fuegen():
-    rate = 24000
-    eins = np.ones(rate, dtype=np.float32) * 0.5
-    zwei = np.ones(rate, dtype=np.float32) * 0.5
-    g = fuegen.blenden([eins, zwei], rate)
-    assert g.size == 2 * rate - int(rate * 0.03) and float(np.max(np.abs(g))) <= 0.5 * np.sqrt(2) + 1e-6
-    still = np.concatenate([np.zeros(rate), eins, np.zeros(rate)]).astype(np.float32)
-    k = fuegen.stille_kuerzen(still, rate)
-    assert k.size == pytest.approx(rate + 2 * int(rate * 0.04), abs=2)
-    f = fuegen.folge([(eins, 0.5), (zwei, 0.5)], rate)
-    assert f.size == 2 * rate + rate // 2 and f[0] == 0.0          # Rand eingeblendet
-    lage = fuegen.legen([(eins, 1.0), (zwei, 3.0)], rate, mindestens_s=6.0)
-    assert lage.size == 6 * rate and lage[int(2.5 * rate)] == 0.0 and lage[int(3.5 * rate)] == pytest.approx(0.5)
 
 
 def test_angaben_der_alten_stimmenausgabe_werden_umgestellt():

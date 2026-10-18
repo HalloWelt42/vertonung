@@ -14,7 +14,7 @@ from appkern.anmeldung import Konto
 from appkern.app import Begleiter, Geruest
 from appkern.kellerwolke import Kellerwolke, NichtGefunden
 from appkern.leitstelle import hoeren
-from appkern.ton import Ton
+from appkern.ton import TonDienst
 
 from .ablage.plaene import Plaene
 from .ablage.stimmen import Stimmen, zugang
@@ -49,6 +49,8 @@ class Teile(Begleiter):
         geruest.einstellungen.anbieten("dienst_sprechen", geruest.leitstelle_angebot("stimme"))
         geruest.einstellungen.anbieten("dienst_klonen", geruest.leitstelle_angebot("stimme_klonen"))
         geruest.einstellungen.anbieten("dienst_hoeren", geruest.leitstelle_angebot("hoeren"))
+        geruest.einstellungen.anbieten("dienst_ton", geruest.leitstelle_angebot("ton"))
+        self.ton = TonDienst(lambda: geruest.leitstelle, lambda: e().dienst_ton)     # Tonarbeit nur auf dem Mac
         self._fristen: asyncio.Task | None = None
         self.dienst = Sprechdienst(lambda: geruest.leitstelle, lambda: (e().dienst_sprechen, e().dienst_klonen))
 
@@ -93,13 +95,9 @@ class Teile(Begleiter):
     def einstellungen(self) -> AppEinstellungen:
         return self.geruest.einstellungen.stand
 
-    @property
-    def ton_jetzt(self) -> Ton:
-        return Ton(self.einstellungen.ffmpeg_ordner)
-
     def werk(self) -> Werk:
-        """Ein Werk mit dem Ton der aktuellen Einstellungen (ffmpeg kann sich ändern)."""
-        return Werk(self.ton_jetzt, self.dienst, ersatzstimme=lambda: self.einstellungen.ersatzstimme,
+        """Ein Werk mit den aktuellen Einstellungen (Ersatzstimme, Klonweg für fremde Sprachen)."""
+        return Werk(self.ton, self.dienst, ersatzstimme=lambda: self.einstellungen.ersatzstimme,
                     sprachfremd=lambda: self.einstellungen.klonen_sprachfremd)
 
     @property

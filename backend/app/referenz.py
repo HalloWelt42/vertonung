@@ -4,14 +4,17 @@ anderer Sprecher dazwischen; gesucht wird die beste Stelle im ganzen Video. Der 
 Ausschnitts, so wie das Modell es verlangt.
 
 Zwei Stufen: aus den Wortzeiten des Transkripts die Kandidaten samt einer ersten Wertung (Länge nahe sechs Sekunden,
-Pausen an den Rändern, Hörsicherheit, natürliches Tempo); für die besten dann der Ton selbst (gleichmäßiger Pegel, leise
-Ränder ohne Musik oder Rauschen, keine Übersteuerung)."""
+Pausen an den Rändern, Hörsicherheit, natürliches Tempo); für die besten dann der Ton (gleichmäßiger Pegel, leise
+Ränder ohne Musik oder Rauschen, keine Übersteuerung), gemessen am Pegelverlauf, den der Tondienst liefert (Rahmen von
+FENSTER_S mit Effektivwert und Spitze): der Pi rechnet keinen Ton."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
 import numpy as np
+
+from appkern.ton import Pegelverlauf
 
 KUERZESTENS_S, LAENGSTENS_S, ZIEL_S = 5.0, 7.0, 6.0
 PAUSE_RAND_S = 0.25          # so viel Stille muss vor dem ersten und nach dem letzten Wort liegen
@@ -85,38 +88,41 @@ def kandidaten(woerter: list[WortZeit], sprecher: str | None, aufnahme_s: float)
     return sorted(aus, key=lambda k: k.wertung, reverse=True)
 
 
-def _pegel(werte: np.ndarray, rate: int) -> np.ndarray:
-    n = max(1, int(FENSTER_S * rate))
-    rahmen = werte[: len(werte) // n * n].reshape(-1, n)
-    return np.sqrt(np.mean(rahmen.astype(np.float64) ** 2, axis=1) + 1e-12)
+def _rahmen(pegel: Pegelverlauf, von: float, bis: float) -> slice:
+    """Die Rahmen, die ganz oder überwiegend zwischen `von` und `bis` liegen (mindestens einer, wenn es ihn gibt)."""
+    r = pegel.rahmen_ms / 1000
+    a = max(0, int(round(von / r)))
+    b = min(len(pegel.rms), max(a + 1, int(round(bis / r))))
+    return slice(a, b)
 
 
-def ton_wertung(werte: np.ndarray, rate: int, k: Kandidat, woerter: list[WortZeit]) -> dict[str, float]:
-    """Wertung aus dem Ton eines Kandidaten (`werte`: die ganze Aufnahme mono): gleichmäßiger Pegel im Gesprochenen,
-    leise Ränder gegen das Gesprochene (Abstand in dB), keine Übersteuerung."""
-    teil = werte[int(k.von * rate): int(k.bis * rate)]
-    if teil.size < rate:
+def ton_wertung(pegel: Pegelverlauf, k: Kandidat, woerter: list[WortZeit]) -> dict[str, float]:
+    """Wertung aus dem Ton eines Kandidaten: gleichmäßiger Pegel im Gesprochenen, leise Ränder gegen das Gesprochene
+    (Abstand in dB), keine Übersteuerung."""
+    if k.bis - k.von < 1.0:
         return {"gleichmaessig": 0.0, "ruhe": 0.0, "sauber": 0.0}
+    rms = np.asarray(pegel.rms, dtype=np.float64)
     erstes = next(w for w in woerter if w.start >= k.von - 1e-3)
     letztes = [w for w in woerter if w.ende <= k.bis + 1e-3][-1]
-    rand = np.concatenate([teil[: max(1, int((erstes.start - k.von) * rate))], teil[int((letztes.ende - k.von) * rate):]])
-    sprache = _pegel(teil[int((erstes.start - k.von) * rate): int((letztes.ende - k.von) * rate)], rate)
+    sprache = rms[_rahmen(pegel, erstes.start, letztes.ende)]
+    rand = np.concatenate([rms[_rahmen(pegel, k.von, erstes.start)], rms[_rahmen(pegel, letztes.ende, k.bis)]])
     laut = sprache[sprache >= np.percentile(sprache, 30)] if sprache.size > 3 else sprache
     gleich = 1.0 - min(float(np.std(20 * np.log10(laut))) / 12.0, 1.0) if laut.size else 0.0
-    abstand_db = 20 * np.log10(float(np.median(laut)) / float(np.mean(_pegel(rand, rate)) if rand.size else 1e-6)) if laut.size else 0.0
+    abstand_db = 20 * np.log10(float(np.median(laut)) / float(np.mean(rand) if rand.size else 1e-6)) if laut.size else 0.0
+    spitze = max(pegel.spitze[_rahmen(pegel, k.von, k.bis)], default=0.0)
     return {"gleichmaessig": round(gleich, 3), "ruhe": round(_anteil(abstand_db, 30.0), 3),
-            "sauber": 0.0 if float(np.max(np.abs(teil))) >= 0.99 else 1.0}
+            "sauber": 0.0 if spitze >= 0.99 else 1.0}
 
 
-def beste(werte: np.ndarray, rate: int, woerter: list[WortZeit], sprecher: str | None, *, pruefen: int = 12) -> Kandidat | None:
+def beste(pegel: Pegelverlauf, woerter: list[WortZeit], sprecher: str | None, *, pruefen: int = 12) -> Kandidat | None:
     """Der beste Ausschnitt: die `pruefen` besten nach den Wortzeiten, dann nach dem Ton gewertet."""
-    aufnahme_s = werte.size / rate
+    aufnahme_s = len(pegel.rms) * pegel.rahmen_ms / 1000
     liste = kandidaten(woerter, sprecher, aufnahme_s)[:pruefen]
     if not liste:
         return None
     gewertet = []
     for k in liste:
-        t = ton_wertung(werte, rate, k, woerter)
+        t = ton_wertung(pegel, k, woerter)
         gesamt = 0.5 * k.wertung + 0.2 * t["gleichmaessig"] + 0.2 * t["ruhe"] + 0.1 * t["sauber"]
         gewertet.append(Kandidat(k.von, k.bis, k.text, round(gesamt, 4), {**k.gruende, **t}))
     return max(gewertet, key=lambda k: k.wertung)

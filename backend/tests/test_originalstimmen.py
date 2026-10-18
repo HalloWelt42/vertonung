@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import numpy as np
 
-from appkern.ton import Ton
+from appkern.ton import TonHier
 
 from app.modell.plan import StimmWahl
 from app.originalstimmen import RATE, zuordnen
@@ -33,25 +33,29 @@ class Stimmen:
     async def anlegen(self, angaben, datei, dauer_s):
         with wave.open(str(datei)) as w:
             assert (w.getframerate(), w.getnchannels()) == (24000, 1)
+            spitze = float(np.max(np.abs(np.frombuffer(w.readframes(w.getnframes()), dtype="<i2")))) / 32768
         self.angelegt.append((angaben, dauer_s))
+        self.spitzen = [*getattr(self, "spitzen", []), spitze]
         return SimpleNamespace(id=str(uuid4()))
 
 
-def teile_mit(tmp_path: Path, stimmen: Stimmen):
+def teile_mit(tmp_path: Path, stimmen: Stimmen, pegel: float = 0.3):
     werte = np.zeros(int(30 * RATE), dtype=np.float32)
     t = np.arange(werte.size) / RATE
-    werte += 0.3 * np.sin(2 * np.pi * 180 * t) * ((t % 0.35) < 0.3)     # "Sprache" überall, Pausen kommen aus den Wortzeiten
+    werte += pegel * np.sin(2 * np.pi * 180 * t) * ((t % 0.35) < 0.3)   # "Sprache" überall, Pausen kommen aus den Wortzeiten
     quelle = tmp_path / "video.wav"
-    with wave.open(str(quelle), "wb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(RATE)
-        w.writeframes((werte * 32767).astype("<i2").tobytes())
+    # Gleitkomma, damit auch eine übersteuerte Quelle (über 1,0) genau so ankommt
+    roh = tmp_path / "video.f32"
+    roh.write_bytes(werte.astype("<f4").tobytes())
+    import subprocess
+    from appkern.ton import programm
+    subprocess.run([programm("ffmpeg"), "-nostdin", "-loglevel", "error", "-y", "-f", "f32le", "-ar", str(RATE), "-ac", "1",
+                    "-i", str(roh), "-c:a", "pcm_f32le", str(quelle)], check=True)
 
     class Zugang:
         async def herunterladen(self, knoten_id, ziel):
             Path(ziel).write_bytes(quelle.read_bytes())
-    return SimpleNamespace(stimmen=stimmen, zugang=lambda: Zugang(), ton_jetzt=Ton())
+    return SimpleNamespace(stimmen=stimmen, zugang=lambda: Zugang(), ton=TonHier())
 
 
 async def test_zuordnen(tmp_path):
@@ -79,8 +83,11 @@ async def test_zuordnen(tmp_path):
 
 
 
-def test_uebersteuerter_ausschnitt_wird_leiser_nie_abgeschnitten():
-    from app.originalstimmen import ausschneiden
-    werte = np.concatenate([np.zeros(RATE), 1.3 * np.sin(np.linspace(0, 200, RATE * 6)), np.zeros(RATE)]).astype(np.float32)
-    teil = ausschneiden(werte, 0.5, 7.5)
-    assert float(np.max(np.abs(teil))) <= 0.98 + 1e-6 and teil.size == 7 * RATE
+async def test_uebersteuerte_stelle_wird_leiser_nie_abgeschnitten(tmp_path):
+    """Eine übersteuerte Quelle (Werte über 1,0): die gewonnene Referenz wird als Ganzes leiser, nie abgeschnitten."""
+    transkript = {"sprecher": [{"kennung": "s1", "name": "Laut"}],
+                  "segmente": [{"sprecher": "s1", "woerter": woerter(2.0, 17, "l")}]}
+    stimmen = Stimmen({})
+    haupt = SimpleNamespace(id=uuid4(), name="Laut.wav", pfad="Apps/Vertonung/Dienst/X/Laut.wav")
+    z = await zuordnen(teile_mit(tmp_path, stimmen, pegel=1.3), transkript, haupt, "Laut", "en", ZEIT, tmp_path / "arbeit")
+    assert z[0].weg == "gewonnen" and 0.9 <= stimmen.spitzen[0] <= 0.98 + 1e-3

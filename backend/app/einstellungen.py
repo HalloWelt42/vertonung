@@ -35,6 +35,9 @@ class AppEinstellungen(Grundeinstellungen):
     dienst_hoeren: str = Field("klangwerk-hoeren", title="Dienst zum Hören", json_schema_extra=SPRECHEN,
                                description="Hört den Referenztext einer Stimme heraus, wenn keiner angegeben ist, und "
                                            "prüft die Aussprache.")
+    dienst_ton: str = Field("klangwerk-ton", title="Tondienst", json_schema_extra=SPRECHEN,
+                            description="Misst, blendet, staucht, mischt und kodiert jeden Ton der Vertonung. Gerechnet wird "
+                                        "auf dem Mac, nie hier.")
     aussprache_pruefen: bool = Field(True, title="Aussprache prüfen", json_schema_extra=SPRECHEN,
                                      description="Jeder neu gesprochene Abschnitt wird zurückgehört und Wort für Wort mit "
                                                  "dem Text verglichen; Abweichungen stehen im Bericht. Kostet etwas Zeit.")
@@ -87,5 +90,3 @@ class AppEinstellungen(Grundeinstellungen):
                                      json_schema_extra={**TECHNIK, "einheit": "GB"},
                                      description="Gesprochene Abschnitte bleiben, damit Nachbessern nur Geändertes spricht. "
                                                  "Wird es mehr, gehen die am längsten nicht genutzten zuerst.")
-    ffmpeg_ordner: str = Field("", title="Ordner von ffmpeg", json_schema_extra=TECHNIK,
-                               description="ffmpeg wandelt, staucht und kodiert. Ohne Eintrag wird es im Suchpfad gesucht.")

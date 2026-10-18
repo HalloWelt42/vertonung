@@ -12,14 +12,13 @@ from pydantic import BaseModel, Field
 from starlette.background import BackgroundTask
 
 from appkern.anmeldung import Konto
-from appkern.ton import Tonformat
+from appkern.ton import Lage, Legen, Tonformat
 
 from ..modell.plan import StimmWahl
 from ..saetze import saetze
 from ..sprechen import mit_modus
 from ..teile import Teile
-from ..werk import fuegen
-from ..werk.werk import RATE
+from ..werk.werk import GRENZE_PEGEL, RAND_MS, RATE
 
 PAUSE_S = 0.3
 WAV = Tonformat(rate=RATE, kanaele=1, kodierung="pcm_s16le")
@@ -43,16 +42,23 @@ def router(teile: Teile) -> APIRouter:
         await teile.stimme_pruefen(wahl, konto)
         gewaehlt = await teile.gewaehlt(wahl)
         werk = teile.werk()
-        teile_ = []
-        for s in saetze(a.text):
-            wie = mit_modus(gewaehlt, "auto", a.sprache or e.sprache, e.klonen_sprachfremd)
-            g_ = await werk.abschnitt_sprechen(s.text, wie, a.sprache or e.sprache, a.tempo, titel="Sprechen")
-            teile_.append((g_.werte, PAUSE_S))
-        werte = fuegen.folge(teile_, RATE)
         ordner = teile.arbeit / f"sprechen-{uuid.uuid4().hex}"
         ordner.mkdir(parents=True, exist_ok=True)
-        ziel = await teile.ton_jetzt.schreiben(werte, RATE, ordner / "sprache.wav", WAV)
-        return FileResponse(ziel, media_type="audio/wav", headers={"X-Dauer": f"{werte.size / RATE:.3f}"},
+        try:
+            dateien, lagen, beginn = [], [], 0.0
+            for i, s in enumerate(saetze(a.text)):
+                wie = mit_modus(gewaehlt, "auto", a.sprache or e.sprache, e.klonen_sprachfremd)
+                g_ = await werk.abschnitt_sprechen(s.text, wie, a.sprache or e.sprache, a.tempo, ordner / f"satz-{i}.wav",
+                                                   titel="Sprechen")
+                dateien.append(g_.datei)
+                lagen.append(Lage(datei=i, beginn_s=round(beginn, 4)))
+                beginn += g_.dauer_s + PAUSE_S
+            gelegt = await teile.ton.legen(dateien, Legen(rate=RATE, lagen=lagen, rand_ms=RAND_MS, spitze=GRENZE_PEGEL,
+                                                          format=WAV), ordner / "sprache.wav", titel="Sprechen, fügen")
+        except BaseException:
+            shutil.rmtree(ordner, ignore_errors=True)
+            raise
+        return FileResponse(ordner / "sprache.wav", media_type="audio/wav", headers={"X-Dauer": f"{gelegt.datei.dauer_s:.3f}"},
                             background=BackgroundTask(shutil.rmtree, ordner, True))
 
     return r

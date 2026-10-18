@@ -2,6 +2,9 @@
 
 Vertonung macht aus Text Sprache. Eine App auf dem [Appkern](https://github.com/HalloWelt42/appkern): Dateien in der Kellerwolke
 (Zweig `Apps/Vertonung`), KI nur über die Leitstelle, Anmeldung mit dem Kellerwolke-Konto, gestartet vom Stellwerk.
+Ton rechnet sie nie selbst: messen, blenden, stauchen, legen und kodieren macht der Tondienst auf dem Mac über die
+Leitstelle (Einstellung "Tondienst"); im Container gibt es kein ffmpeg. Die Tests rechnen Ton mit dem echten Tondienst im
+Prozess und brauchen dafür ffmpeg auf dem Entwicklungsrechner.
 
 ## Einrichten
 

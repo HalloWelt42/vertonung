@@ -1,5 +1,5 @@
-"""Nachgestellte Leitstelle mit Sprech- und Klondienst (Prüfton, 15 Zeichen je Sekunde, WAV 16 Bit 24 kHz mono) und
-eine Weiche, die nur sie abfängt; alles andere (die echte Kellerwolke) geht durch."""
+"""Nachgestellte Leitstelle mit Sprech- und Klondienst (Prüfton, 15 Zeichen je Sekunde, WAV 16 Bit 24 kHz mono) und dem
+echten Tondienst, dazu eine Weiche, die nur sie abfängt; alles andere (die echte Kellerwolke) geht durch."""
 
 from __future__ import annotations
 
@@ -8,8 +8,13 @@ import json
 import re
 import wave
 
+import tempfile
+from pathlib import Path
+
 import httpx
 import numpy as np
+
+from appkern.testen import Tondienst
 
 HOST = "ls.test"
 ADRESSE = f"http://{HOST}"
@@ -90,12 +95,17 @@ class ScheinLeitstelle:
 
 
 class Weiche(httpx.AsyncBaseTransport):
-    def __init__(self, schein: ScheinLeitstelle) -> None:
+    """Leitstelle zum Schein mit echtem Tondienst (rechnet im Test, wie im Betrieb auf dem Mac), alles andere echt."""
+
+    def __init__(self, schein: ScheinLeitstelle, ablage: Path | None = None) -> None:
         self.schein = httpx.MockTransport(schein)
         self.echt = httpx.AsyncHTTPTransport()
+        self.ton = Tondienst(ablage or Path(tempfile.mkdtemp(prefix="tondienst-")))
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        ziel = self.schein if request.url.host == HOST else self.echt
+        if request.url.host != HOST:
+            return await self.echt.handle_async_request(request)
+        ziel = self.ton.transport if self.ton.zustaendig(request) else self.schein
         return await ziel.handle_async_request(request)
 
     async def aclose(self) -> None:

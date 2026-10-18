@@ -1,7 +1,7 @@
 """Ausspracheprüfung: das Gesprochene eines Abschnitts wird über den Hördienst zurückgehört und Wort für Wort mit dem
 Text verglichen (Wortfehlerquote und die abweichenden Stellen). Das Hören kann selbst irren; die Quote ist ein Hinweis
 und eine Messgröße für die Optimierung, kein Urteil. Verglichen wird ohne Satzzeichen und ohne Groß- und Kleinschreibung.
-Gehört wird das fertige Ergebnis, nicht der einzelne Abschnitt."""
+Gehört wird das fertige Ergebnis, nicht der einzelne Abschnitt; die Hör-Stücke schneidet der Tondienst in einem Aufruf."""
 
 from __future__ import annotations
 
@@ -12,13 +12,12 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
 
-from appkern.ton import Ton, Tonformat
+from appkern.ton import HOEREN, Aufbereiten, Ausgabe, Tonarbeit
 
 from .modell.plan import Plan
 from .sprechfassung import sprechbar
-from .werk.fuegen import begrenzen
 
-HOEREN = Tonformat(rate=16000, kanaele=1, kodierung="pcm_s16le")    # was der Hördienst ohnehin rechnet
+SPITZE = 0.98         # ein übersteuertes Stück wird leiser, damit der Hördienst sauberen Ton bekommt
 HOECHSTENS_ABWEICHUNGEN = 8
 _ZEICHEN = re.compile(r"[^\w\s]", re.UNICODE)
 
@@ -92,7 +91,8 @@ def stuecke(span: list[Spanne], gesamt_s: float, hoechstens_s: float = STUECK_S)
     return aus
 
 
-async def pruefen(gelaufen: Plan, ergebnis: Path, arbeit: Path, ton: Ton, hoeren: Callable[[Path, str], Awaitable[list]]) -> int:
+async def pruefen(gelaufen: Plan, ergebnis: Path, dauer_s: float, arbeit: Path, ton: Tonarbeit,
+                  hoeren: Callable[[Path, str], Awaitable[list]]) -> int:
     """Hört das fertige Ergebnis (das, was man tatsächlich hört, samt Stauchung) in wenigen Stücken, ordnet die Wörter
     über ihre Zeit den Abschnitten zu und trägt je Abschnitt Quote und Abweichungen in seinen Bericht ein. Wenige große
     Anfragen statt einer je Abschnitt: der Hördienst hat ein Fach, jede Anfrage wartet sonst einzeln (K3, 18.10.2026)."""
@@ -103,10 +103,12 @@ async def pruefen(gelaufen: Plan, ergebnis: Path, arbeit: Path, ton: Ton, hoeren
     arbeit.mkdir(parents=True, exist_ok=True)
     woerter: dict[int, list[str]] = {s.nr: [] for s in span}
     try:
-        werte = begrenzen(await ton.lesen(ergebnis, HOEREN.rate))
-        for i, (von, bis) in enumerate(stuecke(span, werte.size / HOEREN.rate)):
-            datei = arbeit / f"hoeren-{i}.wav"
-            await ton.schreiben(werte[int(von * HOEREN.rate): int(bis * HOEREN.rate)], HOEREN.rate, datei, HOEREN)
+        teile = stuecke(span, dauer_s)
+        dateien = [arbeit / f"hoeren-{i}.wav" for i in range(len(teile))]
+        await ton.aufbereiten(ergebnis, Aufbereiten(ausgaben=[Ausgabe(format=HOEREN, beginn_s=von, ende_s=bis, spitze=SPITZE)
+                                                              for von, bis in teile]),
+                              dateien, titel=f"{gelaufen.name}, zum Hören schneiden")
+        for (von, _), datei in zip(teile, dateien):
             for w in await hoeren(datei, sprache):
                 mitte = von + (w.start + w.ende) / 2
                 nr = next((s.nr for s in span if s.von - RAND_S <= mitte <= s.bis + RAND_S), None)

@@ -4,7 +4,6 @@ Vorlesen planen und vertonen (Ergebnis als MP3 neben dem Text), einen Satz ände
 Klonstimme. Am Ende alles in den Papierkorb (Dateien vor Ordnern) und Aktionen zurückziehen."""
 
 import asyncio
-import io
 import json
 from pathlib import Path
 

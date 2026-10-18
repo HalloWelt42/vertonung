@@ -100,7 +100,9 @@ Aufträge und Protokoll aus dem Appkern.
 | Sofortantwort für Kunden | WAV, 16 Bit, 24 kHz mono | wie bisher; Rufzeichen, Fundus, Bombel, Zusage und Medienpool lesen es direkt |
 
 Gewandelt wird genau einmal am Ende mit dem gemessenen Resampler des Appkerns (`appkern.ton`, soxr); jede Wandlung ist
-getestet (Frequenz, Dauer, Format). Auf dem Pi läuft nur ffmpeg (wandeln, stauchen, mischen, kodieren).
+getestet (Frequenz, Dauer, Format). Gerechnet wird nicht auf dem Pi (Nutzer 18.10.2026: "pi ist nur datenlieferant"):
+messen, blenden, stauchen, legen und kodieren macht der Tondienst auf dem Mac über die Leitstelle; die Vertonung
+entscheidet nur (Prüfung der Stücke, Zeitlage, Wahl der Referenzstelle).
 
 ## 4. Abläufe
 

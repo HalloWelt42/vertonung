@@ -3,8 +3,6 @@ dem Zwischenspeicher, das Ergebnis eines Plans."""
 
 from __future__ import annotations
 
-import shutil
-import uuid
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
@@ -12,11 +10,9 @@ from fastapi.responses import FileResponse, Response
 
 from appkern.anmeldung import Konto
 from appkern.app import inhalt_reichen
-from appkern.ton import Tonformat
-from starlette.background import BackgroundTask
 
 from ..teile import Teile
-from ..werk.werk import RATE
+from ..werk.werk import SPEICHERFASSUNG
 
 
 def router(teile: Teile) -> APIRouter:
@@ -33,15 +29,12 @@ def router(teile: Teile) -> APIRouter:
 
     @r.get("/plaene/{plan_id}/abschnitte/{nr}")
     async def abschnitt(plan_id: UUID, nr: int, konto: Konto = g.lesen) -> FileResponse:
-        """Ein gesprochener Abschnitt zum Anhören, als WAV 16 Bit (das Arbeitsformat Gleitkomma spielt nicht jeder
-        Browser); gewandelt ohne Änderung der Rate."""
-        datei = next(iter(sorted(teile.speicher(plan_id).glob(f"{nr:05d}-*.wav"))), None)
+        """Ein gesprochener Abschnitt zum Anhören: die Datei des Zwischenspeichers selbst (WAV 16 Bit, spielt jeder
+        Browser)."""
+        datei = next(iter(sorted(teile.speicher(plan_id).glob(f"{nr:05d}-*.{SPEICHERFASSUNG}.wav"))), None)
         if datei is None:
             raise HTTPException(404, "Dieser Abschnitt ist noch nicht gesprochen")
-        ordner = teile.arbeit / f"anhoeren-{uuid.uuid4().hex}"
-        ordner.mkdir(parents=True, exist_ok=True)
-        ziel = await teile.ton_jetzt.wandeln(datei, ordner / "abschnitt.wav", Tonformat(rate=RATE, kanaele=1, kodierung="pcm_s16le"))
-        return FileResponse(ziel, media_type="audio/wav", background=BackgroundTask(shutil.rmtree, ordner, True))
+        return FileResponse(datei, media_type="audio/wav")
 
     @r.get("/plaene/{plan_id}/ergebnis")
     async def ergebnis(plan_id: UUID, request: Request, anfrage: UUID | None = None, konto: Konto = g.lesen) -> Response:

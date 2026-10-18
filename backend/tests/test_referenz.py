@@ -1,11 +1,22 @@
 """Referenz gewinnen: nur 5 bis 7 Sekunden eines Sprechers mit Pausen an beiden Rändern, Schnitt in der Pause, Text
-genau aus den Wörtern; im Ton gewinnt die Stelle mit leisen Rändern gegen eine mit Musik in den Pausen."""
+genau aus den Wörtern; im Ton gewinnt die Stelle mit leisen Rändern gegen eine mit Musik in den Pausen (bewertet am
+Pegelverlauf, wie ihn der Tondienst misst)."""
 
 import numpy as np
 
-from app.referenz import KUERZESTENS_S, LAENGSTENS_S, WortZeit, beste, kandidaten
+from appkern.ton import Pegelverlauf
+from appkern.ton.rechnen import Pegelrechner
+
+from app.referenz import FENSTER_S, KUERZESTENS_S, LAENGSTENS_S, WortZeit, beste, kandidaten
 
 RATE = 16000
+
+
+def pegel(werte: np.ndarray, rate: int) -> Pegelverlauf:
+    """Der Pegelverlauf, wie ihn der Tondienst für `werte` liefert."""
+    r = Pegelrechner(rate, int(FENSTER_S * 1000))
+    r.fuettern(werte)
+    return Pegelverlauf(rahmen_ms=int(FENSTER_S * 1000), rms=r.rms, spitze=r.spitzen)
 
 
 def satz(start: float, anzahl: int, sprecher: str = "s1", wortlaenge: float = 0.3, luecke: float = 0.05) -> list[WortZeit]:
@@ -35,7 +46,7 @@ def test_ton_entscheidet_bei_musik_in_den_pausen():
         a, b = int(w.start * RATE), int(w.ende * RATE)
         werte[a:b] = 0.3 * np.sin(2 * np.pi * 220 * t[a:b])
     werte[int(0.0 * RATE):int(8.0 * RATE)] += 0.08 * np.sin(2 * np.pi * 523 * t[:int(8.0 * RATE)])   # Musik unter Satz 1
-    k = beste(werte, RATE, woerter, "s1")
+    k = beste(pegel(werte, RATE), woerter, "s1")
     assert k is not None and k.von > 9.0 and k.gruende["ruhe"] > 0.5
 
 
@@ -44,7 +55,7 @@ async def test_lange_probe_wird_in_pausen_zugeschnitten(tmp_path):
 
     import pytest
 
-    from appkern.ton import Ton
+    from appkern.ton import TonHier
 
     from app.ablage.stimmen import ProbeZuKurz, probe_aufbereiten
     rate = 24000
@@ -63,10 +74,10 @@ async def test_lange_probe_wird_in_pausen_zugeschnitten(tmp_path):
 
     async def gehoert(_):
         return woerter
-    dauer, text = await probe_aufbereiten(Ton(), roh, tmp_path / "ref.wav", 5.0, gehoert)
+    dauer, text = await probe_aufbereiten(TonHier(), roh, tmp_path / "ref.wav", 5.0, gehoert)
     assert 5.0 <= dauer <= 7.4 and text.startswith("w6_0") and "w1_" not in text and "w12" not in text
 
     async def ohne_pausen(_):
         return [WortZeit("x", 0.0, 16.0)]
     with pytest.raises(ProbeZuKurz):
-        await probe_aufbereiten(Ton(), roh, tmp_path / "ref2.wav", 5.0, ohne_pausen)
+        await probe_aufbereiten(TonHier(), roh, tmp_path / "ref2.wav", 5.0, ohne_pausen)
