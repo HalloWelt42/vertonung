@@ -211,7 +211,7 @@ def zu_lang(plan: Plan, nummern: set[int], hoechstens: float) -> list[Fassung]:
 
 async def plan_uebersetzen(plan: Plan, ls: Leitstelle, *, zeichen_je_s: dict[str, float], komfort: float, hoechstens: float,
                            fortschritt: Callable[[float, str], Awaitable[None]], pruefen: Callable[[], Awaitable[None]],
-                           merken: Callable[[Plan], Awaitable[None]]) -> list[int]:
+                           merken: Callable[[Plan], Awaitable[None]], modell: str | None = None) -> list[int]:
     """Übersetzt alle Abschnitte, deren Original sich seit der letzten Übersetzung geändert hat; nach jedem Fenster wird
     der Plan gemerkt (fortsetzbar). Liefert die Nummern der übersetzten Abschnitte. `zeichen_je_s` je Rolle."""
     von, nach = plan.ausgangssprache or "en", plan.sprache
@@ -228,7 +228,7 @@ async def plan_uebersetzen(plan: Plan, ls: Leitstelle, *, zeichen_je_s: dict[str
         davor = [(a.original or "", a.text) for a in plan.abschnitte[max(0, erstes - ZUSAMMENHANG):erstes]
                  if a.original and not a.uebersetzung_noetig(nach)]
         ergebnis = await fenster_uebersetzen(ls, [Stueck(a.nr, a.original or "", budget.get(a.nr)) for a in fenster], davor,
-                                             von, nach, titel=f"Vertonung: {plan.name} übersetzen")
+                                             von, nach, titel=f"Vertonung: {plan.name} übersetzen", modell=modell)
         for nr, text in ergebnis.items():
             a = nach_nr[nr]
             a.text, a.uebersetzt_aus = text, uebersetzungssumme(a.original or "", nach)

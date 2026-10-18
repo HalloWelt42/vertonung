@@ -45,6 +45,10 @@ class Teile(Begleiter):
         self.verzeichnis = Verzeichnis(geruest.db)
         self.tempo = Sprechtempo(geruest.db, lambda: e().sprechtempo)
         self.dienstablage = DienstAblage(geruest.db)
+        geruest.einstellungen.anbieten("uebersetzen_modell", geruest.leitstelle_angebot("uebersetzen", leer="Kette der App"))
+        geruest.einstellungen.anbieten("dienst_sprechen", geruest.leitstelle_angebot("stimme"))
+        geruest.einstellungen.anbieten("dienst_klonen", geruest.leitstelle_angebot("stimme_klonen"))
+        geruest.einstellungen.anbieten("dienst_hoeren", geruest.leitstelle_angebot("hoeren"))
         self._fristen: asyncio.Task | None = None
         self.dienst = Sprechdienst(lambda: geruest.leitstelle, lambda: (e().dienst_sprechen, e().dienst_klonen))
 

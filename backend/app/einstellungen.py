@@ -39,6 +39,11 @@ class AppEinstellungen(Grundeinstellungen):
                                      description="Jeder neu gesprochene Abschnitt wird zurückgehört und Wort für Wort mit "
                                                  "dem Text verglichen; Abweichungen stehen im Bericht. Kostet etwas Zeit.")
 
+    uebersetzen_modell: str = Field("", title="Modell zum Übersetzen", json_schema_extra=ZEITGENAU,
+                                    description="Leer: die Kette der Vertonung in der Leitstelle. Sonst dieses Modell "
+                                                "(Messung 18.10.2026: Qwen 3.6 35B-A3B übersetzt so vollständig wie das "
+                                                "80B, rund dreieinhalbmal schneller). Was zu groß ist, entlädt die "
+                                                "Leitstelle selbst.")
     komfort: float = Field(1.15, ge=1.0, le=1.5, title="Stauchen unauffällig bis",
                            json_schema_extra={**ZEITGENAU, "schritt": 0.05, "einheit": "fach"},
                            description="Bis zu diesem Faktor klingt schnelleres Sprechen noch natürlich; mehr wird im Bericht "
