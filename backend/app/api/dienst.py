@@ -43,8 +43,6 @@ def router(teile: Teile) -> APIRouter:
                        stimmen: Literal["fest", "original"] = Form("fest", description="original: je Sprecher seine Stimme "
                                                                    "aus dem Video (wiederverwendet oder gewonnen), `stimme` "
                                                                    "als Ersatz; dann transkribiert die Vertonung selbst"),
-                       sprecher_anzahl: int | None = Form(None, ge=1, le=20, description="bei Originalstimmen: wie viele "
-                                                          "sprechen, wenn bekannt; macht die Sprechertrennung verlässlich"),
                        klonmodus: Klonmodus = Form("auto", description="icl (mit Referenztext), abdruck (nur Stimmabdruck) "
                                                                     "oder auto (nach Sprache der Stimme)"),
                        behalten: bool = Form(True, description="false: nach dem Abholen in den Papierkorb, spätestens "
@@ -70,7 +68,7 @@ def router(teile: Teile) -> APIRouter:
         finally:
             shutil.rmtree(ordner, ignore_errors=True)
         eingabe = DienstEingabe(haupt_id=haupt.id, name=name, ausgangssprache=ausgangssprache, sprache=sprache, stimme=wahl,
-                                stimmen=stimmen, sprecher_anzahl=sprecher_anzahl, klonmodus=klonmodus, format=format, von=von(konto))
+                                stimmen=stimmen, klonmodus=klonmodus, format=format, von=von(konto))
         auftrag = await g.auftraege.einreihen("dienst_vertonen", eingabe, titel=f"{name} ({konto.app or 'direkt'})")
         await teile.dienstablage.eintragen(auftrag.id, haupt.id, konto.app or "Direkt", behalten)
         return auftrag
