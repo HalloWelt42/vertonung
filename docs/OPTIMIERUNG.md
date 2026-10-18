@@ -152,6 +152,33 @@ Pegel und Rauschen ändern nichts; eine Verschiebung um 20 ms (andere Fensterlag
 Resampler kippt die Gruppierung. Nächster Schritt: die Schwelle der Gruppierung der Trennung und eine Prüfung über
 zwei Fensterlagen messen (erst messen, dann entscheiden).
 
+Messung der Gruppierung (18.10.2026, pyannote 3.1 offline mit denselben Abwandlungen; Werkzeuge im Arbeitsordner:
+trennschwellen.py, trennturns.py, trennvergleich.py, trennmatrix.py):
+
+- **Schwelle** (0,55 bis 0,80): keine ist stabil; der zweite Sprecher hat je nach Schwelle und Abwandlung 31 oder 7 s,
+  ohne Ordnung. Die versetzte Abwandlung scheitert bei jeder Schwelle.
+- **Ursache**: der zweite Sprecher zerfällt in zwei Teilgruppen (etwa 17 und 16 s), beide unter der kleinsten
+  Gruppengröße von 12; ob sie zusammenfinden oder im ersten Sprecher aufgehen, entscheidet ein kleiner Unterschied im
+  Ton. Mit Gruppengröße 8 bleiben die Teilgruppen erhalten (in den Wörtern 94 % richtig, aber drei Sprecher; die
+  kleine Gruppe mit 3,5 s klingt laut Stimmabdruck weder wie der eine noch wie der andere, Ähnlichkeit 0,07 und 0,01);
+  mit 4 und 6 zerfällt es weiter, das Zusammenlegen per Stimmabdruck (0,60) fügt die Stücke nicht.
+- **Gruppierung nur per Stimmabdruck** (Trennung nur als Grenzen): schlechter, meist ein Sprecher (70 bis 86 %).
+- **Bekannte Sprecherzahl** (`num_speakers` 2, ohne Zusammenlegen, wie die Transkription es bei Anzahl tut):
+
+| Abwandlung | Anzahl unbekannt (heute) | Anzahl 2 |
+|---|---|---|
+| Mac | 100 % | 100 % |
+| Tondienst | 98 % | 98 % |
+| Rauschen -60 dB | 98 % | 98 % |
+| 20 ms versetzt | 86 % (ein Sprecher) | 96 % |
+| auf dem Pi gewandelt | 86 % (ein Sprecher) | 87 % |
+
+Befund: Über die Gruppierung allein ist die Trennung nicht stabil zu bekommen; die bekannte Sprecherzahl macht sie es
+(Pi-Wandlung entfällt seit dem Tondienst). Die Transkription nimmt eine Anzahl schon an (Feld "Anzahl"), die Vertonung
+reicht bei Originalstimmen keine weiter. Offen zur Entscheidung: Sprecherzahl beim Vormerken angeben (TubeVault,
+Vertonung) oder die Trennung zweimal mit versetzter Fensterlage rechnen und das Ergebnis mit dem größeren Anteil des
+kleineren Sprechers nehmen (doppelte Trennzeit, an mehr als einer Aufnahme zu prüfen).
+
 Offen: die Trennung bleibt empfindlich (kleine Abweichungen im Ton kippen die Gruppierung); Messgröße Aussprache nach
 Wörtern gewichten statt je Abschnitt; kurze Einwürfe (unter 1,5 s) eher mit dem Nachbarabschnitt desselben Sprechers
 zusammenfassen oder bei hoher Stauchung schieben.
