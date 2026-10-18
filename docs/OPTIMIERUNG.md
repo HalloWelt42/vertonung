@@ -97,3 +97,12 @@ Klonen sich die Rechner teilen.
 
 1. Sprechertrennung der Transkription, je Sprecher eine Stimme (wiederverwendet oder gewonnen), Rollen im Plan.
 2. Überlappungen, kurze Einwürfe, Zuordnung über Sprecherprofile.
+
+Runde 1 (K3: "Passenger with suspicious packages questioned in Fort Lauderdale", National Geographic, 3:35, Erzähler,
+Beamte, Fluggast): Die Transkription lieferte trotz Sprechertrennung nur einen Sprecher. Ursache: Das Hörmodell liefert
+Segmente von rund 14 s, in denen die Sprecher wechseln; jedes Segment ging ganz an den überwiegenden Sprecher, und
+ähnliche Mittel wurden zusammengelegt. Abhilfe (Transkription 0.12): Segmente an den Sprecherwechseln der Trennung
+teilen (Wortzeiten) und die Abdrücke der geteilten Segmente neu bestimmen. Nebenbefunde: Transkripte ohne Satzzeichen
+ergaben einen einzigen Abschnitt (Vertonung fasst jetzt höchstens 25 s zusammen); übersteuerte Quellen brachen das
+Gewinnen ab (Referenz wird jetzt leiser); die Ausspracheprüfung wartete je Abschnitt auf das eine Hör-Fach der
+Leitstelle (sie hört jetzt das fertige Ergebnis in Stücken bis 5 Minuten).
