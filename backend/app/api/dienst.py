@@ -39,12 +39,16 @@ def router(teile: Teile) -> APIRouter:
                        stimme: str | None = Form(None, description='JSON wie {"art": "katalog", "name": "serena"}'),
                        segmente: str | None = Form(None, description="JSON-Liste mit start, ende, text, sprecher"),
                        format: Literal["wie_quelle", "m4a"] = Form("m4a"),
+                       stimmen: Literal["fest", "original"] = Form("fest", description="original: je Sprecher seine Stimme "
+                                                                   "aus dem Video (wiederverwendet oder gewonnen), `stimme` "
+                                                                   "als Ersatz; dann transkribiert die Vertonung selbst"),
                        behalten: bool = Form(True, description="false: nach dem Abholen in den Papierkorb, spätestens "
                                                                "48 Stunden nach dem Hochladen"),
                        konto: Konto = g.pflicht) -> Auftrag:
         try:
             wahl = StimmWahl.model_validate_json(stimme) if stimme else None
-            stuecke = SEGMENTE.validate_json(segmente) if segmente else None
+            # Originalstimmen brauchen Sprecher und Wortzeiten; mitgeschickte Segmente haben beides nicht
+            stuecke = SEGMENTE.validate_json(segmente) if segmente and stimmen == "fest" else None
         except (ValidationError, json.JSONDecodeError) as f:
             raise HTTPException(422, f"Stimme oder Segmente nicht lesbar: {f}") from f
         if wahl is not None:
@@ -61,7 +65,7 @@ def router(teile: Teile) -> APIRouter:
         finally:
             shutil.rmtree(ordner, ignore_errors=True)
         eingabe = DienstEingabe(haupt_id=haupt.id, name=name, ausgangssprache=ausgangssprache, sprache=sprache, stimme=wahl,
-                                format=format, von=von(konto))
+                                stimmen=stimmen, format=format, von=von(konto))
         auftrag = await g.auftraege.einreihen("dienst_vertonen", eingabe, titel=f"{name} ({konto.app or 'direkt'})")
         await teile.dienstablage.eintragen(auftrag.id, haupt.id, konto.app or "Direkt", behalten)
         return auftrag

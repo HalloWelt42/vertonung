@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from appkern.auftraege import Kontext
 
-from . import planen
+from . import originalstimmen, planen
 from .ablage import orte
 from .modell.plan import Quelle, StimmWahl, Ziel
 from .teile import Teile
@@ -40,6 +40,7 @@ class DienstEingabe(BaseModel):
     ausgangssprache: str | None = None
     sprache: str = "de"
     stimme: StimmWahl | None = None             # eine Stimme für alle Sprecher (ohne: die Stimme ab Werk)
+    stimmen: Literal["fest", "original"] = "fest"   # original: je Sprecher seine Stimme aus dem Video, `stimme` als Ersatz
     format: Literal["wie_quelle", "m4a"] = "m4a"
     von: str | None = None
 
@@ -71,8 +72,10 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
     text = next((b for b in await kw.begleiter(haupt.id) if b.rolle in TEXTROLLEN), None)
     if text is None:
         if "weitergegeben" not in k.zwischenstand:
-            neu = await kw.weitergeben(teile.einstellungen.transkription_app, "transkribieren", haupt.id,
-                                       {"sprache": e.ausgangssprache or "auto"})
+            optionen = {"sprache": e.ausgangssprache or "auto"}
+            if e.stimmen == "original":
+                optionen["sprecher"] = "trennung"     # Originalstimmen brauchen Sprecher und Wortzeiten
+            neu = await kw.weitergeben(teile.einstellungen.transkription_app, "transkribieren", haupt.id, optionen)
             await k.merken(weitergegeben=str(neu.anfrage.id), seit=time.time())
         seit = float(k.zwischenstand.get("seit", time.time()))
         while text is None:
@@ -86,6 +89,7 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
     if plan_id is None:
         inhalt = (await kw.lesen_ganz(text.id)).decode("utf-8", "replace")
         ausgang = e.ausgangssprache
+        transkript = None
         if text.name.lower().endswith((".srt", ".vtt")):
             segmente = planen.segmente_aus_untertiteln(inhalt)
         else:
@@ -94,8 +98,14 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
             if ausgang is None and transkript.get("sprache") not in (None, "", "auto"):
                 ausgang = transkript["sprache"]
         stimme = e.stimme or StimmWahl(art="katalog", name=teile.einstellungen.stimme_vorgabe)
+        je_sprecher: dict[str, StimmWahl] = {}
+        if e.stimmen == "original" and transkript is not None:
+            zuordnung = await originalstimmen.zuordnen(teile, transkript, haupt, e.name, ausgang or "en", stimme,
+                                                       teile.arbeit / f"{k.auftrag_id}-stimmen")
+            je_sprecher = {z.sprecher: z.wahl for z in zuordnung}
+            await k.merken(stimmen={z.sprecher: z.weg for z in zuordnung})
         dauer = haupt.felder.get("dauer_s")
-        plan = planen.aus_segmenten(e.name, segmente, {}, stimme, quelle=Quelle(knoten_id=haupt.id, pfad=haupt.pfad, etag=haupt.etag),
+        plan = planen.aus_segmenten(e.name, segmente, je_sprecher, stimme, quelle=Quelle(knoten_id=haupt.id, pfad=haupt.pfad, etag=haupt.etag),
                                     quelle_dauer_s=float(dauer) if isinstance(dauer, (int, float)) else None, sprache=e.sprache,
                                     ziel=Ziel(format=e.format), ausgangssprache=ausgang)
         knoten = await plaene.speichern(haupt.id, plan)
@@ -105,7 +115,7 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
         await k.merken(plan_id=plan_id)
         await teile.dienstablage.plan_merken(k.auftrag_id, plan_id)
     ergebnis = await plan_ausfuehren(teile, k, UUID(plan_id), None)
-    return {**ergebnis, "plan_id": plan_id}
+    return {**ergebnis, "plan_id": plan_id, "stimmen": k.zwischenstand.get("stimmen", {})}
 
 
 async def ablegen(teile: Teile, app: str, name: str, endung: str, datei, segmente: list[DienstSegment] | None,
