@@ -93,7 +93,9 @@ def zusammenfassen(segmente: list[Segment]) -> list[Segment]:
 
 def aus_segmenten(name: str, segmente: list[Segment], stimmen: dict[str, StimmWahl], vorgabe: StimmWahl, *,
                   quelle: Quelle | None, quelle_dauer_s: float | None, sprache: str = "de", ziel: Ziel | None = None,
-                  ohne_sprecher: str = "Sprecher") -> Plan:
+                  ohne_sprecher: str = "Sprecher", ausgangssprache: str | None = None) -> Plan:
+    """`ausgangssprache`: Sprache der Segmente; weicht sie von `sprache` ab, wird übersetzt (Original je Abschnitt)."""
+    uebersetzen = bool(ausgangssprache) and ausgangssprache != sprache
     gruppen = zusammenfassen(segmente)
     if not gruppen:
         raise ValueError("Keine Segmente mit Text")
@@ -101,10 +103,11 @@ def aus_segmenten(name: str, segmente: list[Segment], stimmen: dict[str, StimmWa
     kennung = _kennungen(namen)
     rollen = [Rolle(kennung=kennung[n], name=n, stimme=stimmen.get(n, vorgabe)) for n in namen]
     abschnitte = [Abschnitt(nr=i + 1, rolle=kennung[g.sprecher or ohne_sprecher], text=g.text, start=round(g.start, 3),
-                            ende=round(max(g.ende, g.start), 3), pause_danach_s=0)
+                            ende=round(max(g.ende, g.start), 3), pause_danach_s=0, original=g.text if uebersetzen else None)
                   for i, g in enumerate(gruppen)]
     return Plan(art="zeitgenau", name=name, sprache=sprache, rollen=rollen, abschnitte=abschnitte, quelle=quelle,
-                quelle_dauer_s=quelle_dauer_s, ziel=ziel or Ziel(format="wie_quelle"))
+                quelle_dauer_s=quelle_dauer_s, ziel=ziel or Ziel(format="wie_quelle"),
+                ausgangssprache=ausgangssprache if uebersetzen else None)
 
 
 def segmente_aus_transkript(transkript: dict) -> list[Segment]:

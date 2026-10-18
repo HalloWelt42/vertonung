@@ -1,6 +1,7 @@
 """Arten von Aufträgen der Vertonung.
 
-vertonen    Einen Plan mit dem Werk ausführen: sprechen (nur Geändertes), fügen, einmal ins Zielformat schreiben, das
+vertonen    Einen Plan mit dem Werk ausführen: erst übersetzen, was sich im Original geändert hat (das große Sprachmodell
+            über die Leitstelle, nach jedem Fenster gemerkt), dann sprechen (nur Geändertes), fügen, einmal ins Zielformat schreiben, das
             Ergebnis neben die Hauptdatei legen, den Plan mit Prüfsummen und Bericht zurückschreiben. Wurde der Plan
             während des Laufs geändert, bleiben die Änderungen; übernommen wird nur, was zu ihnen passt.
 """
@@ -20,7 +21,9 @@ from appkern.kellerwolke import Aktion, Kellerwolke, StandVeraltet
 from appkern.ton import Tonformat
 
 from .modell.plan import Ergebnis, Plan
+from .sprechen import KeineLeitstelle
 from .teile import Teile
+from .uebersetzen import plan_uebersetzen
 from .werk.werk import ziel_format
 
 KOPF_BYTES = 4 * 1024 * 1024      # zum Messen des Quellformats reicht meist der Anfang der Datei
@@ -76,6 +79,20 @@ def arten(teile: Teile) -> list[Art]:
             haupt_id = knoten.haupt_id or (plan.quelle.knoten_id if plan.quelle else None)
             if haupt_id is None:
                 raise ValueError("Der Plan gehört zu keiner Datei")
+            if plan.zu_uebersetzen():
+                ls = teile.geruest.leitstelle
+                if ls is None:
+                    raise KeineLeitstelle("Zum Übersetzen braucht die Vertonung die Leitstelle")
+
+                async def merken(p: Plan) -> None:
+                    nonlocal knoten
+                    p.geaendert_am = datetime.now(UTC)
+                    knoten = await plaene.schreiben(e.plan_id, p, knoten.etag or "")
+
+                async def uebersetzt(anteil: float, text: str) -> None:
+                    await k.fortschritt(0.02 + 0.2 * anteil, text, phase="uebersetzen")
+
+                plan = await plan_uebersetzen(plan, ls, fortschritt=uebersetzt, pruefen=k.pruefen, merken=merken)
             quelle: Tonformat | None = None
             if plan.art == "zeitgenau":
                 quelle, dauer = await quelle_messen(teile, kw, haupt_id, ordner)
@@ -84,7 +101,7 @@ def arten(teile: Teile) -> list[Art]:
             ziel = ordner / f"ergebnis{endung}"
 
             async def fortschritt(anteil: float, text: str) -> None:
-                await k.fortschritt(0.05 + 0.85 * anteil, text, phase="sprechen")
+                await k.fortschritt(0.22 + 0.68 * anteil, text, phase="sprechen")
 
             gelaufen = await teile.werk().ausfuehren(plan, stimme=teile.gewaehlt, speicher=teile.speicher(e.plan_id),
                                                      ziel=ziel, format=format, fortschritt=fortschritt, pruefen=k.pruefen,
@@ -116,6 +133,7 @@ def arten(teile: Teile) -> list[Art]:
     return [
         Art("vertonen", "Vertonen", vertonen, eingabe=VertonenEingabe, fortsetzbar=True, nach_neustart="fortsetzen",
             phasen=[Phase(schluessel="vorbereiten", titel="Vorbereiten", symbol="box-open"),
+                    Phase(schluessel="uebersetzen", titel="Übersetzen", symbol="language"),
                     Phase(schluessel="sprechen", titel="Sprechen", symbol="microphone"),
                     Phase(schluessel="ablegen", titel="Ablegen", symbol="cloud-arrow-up")]),
     ]

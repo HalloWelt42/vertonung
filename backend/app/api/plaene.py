@@ -33,7 +33,8 @@ class PlanAnlegen(BaseModel):
     anfrage_id: UUID | None = None                         # Quelle außerhalb der App (aus der Kellerwolke angefragt)
     stimme: StimmWahl | None = None                        # Vorlesen; im Dialog und zeitgenau die Vorgabe
     stimmen: dict[str, StimmWahl] = Field(default_factory=dict)   # Rolle (Name) -> Stimme
-    sprache: str | None = None
+    sprache: str | None = None                             # in dieser Sprache wird gesprochen (Vorgabe: Einstellung)
+    ausgangssprache: str | None = None                     # Sprache der Quelle; Vorgabe beim Transkript: seine Angabe
     format: Literal["mp3", "wav", "flac", "ogg"] | None = None
 
 
@@ -76,6 +77,7 @@ class QuelleVorschau(BaseModel):
     pfad: str
     art: Literal["text", "medium", "transkript", "untertitel"]
     textquelle: str | None = None            # Name des Transkripts oder der Untertitel einer Aufnahme
+    sprache: str | None = None               # Sprache des Transkripts, wenn es eine nennt
     sprecher: list[str] = Field(default_factory=list)
     abschnitte: int = 0
     dauer_s: float | None = None
@@ -135,14 +137,19 @@ def router(teile: Teile) -> APIRouter:
                     raise ValueError("Zeitgenau braucht ein Transkript oder Untertitel")
                 textquelle = await _textquelle(kw, await kw.knoten(a.quelle_id))
                 inhalt = (await kw.lesen_ganz(textquelle.id)).decode("utf-8", "replace")
+                ausgang = a.ausgangssprache
                 if textquelle.name.lower().endswith(UNTERTITEL):
                     segmente = planen.segmente_aus_untertiteln(inhalt)
                 else:
-                    segmente = planen.segmente_aus_transkript(json.loads(inhalt))
+                    transkript = json.loads(inhalt)
+                    segmente = planen.segmente_aus_transkript(transkript)
+                    if ausgang is None and transkript.get("sprache") not in (None, "", "auto"):
+                        ausgang = transkript["sprache"]
                 haupt = await kw.knoten(textquelle.haupt_id) if textquelle.haupt_id else textquelle
                 plan = planen.aus_segmenten(a.name or haupt.name.rsplit(".", 1)[0], segmente, a.stimmen, vorgabe,
                                             quelle=Quelle(knoten_id=haupt.id, pfad=haupt.pfad, etag=haupt.etag),
-                                            quelle_dauer_s=haupt.felder.get("dauer_s"), sprache=sprache)
+                                            quelle_dauer_s=haupt.felder.get("dauer_s"), sprache=sprache,
+                                            ausgangssprache=ausgang)
         except (ValueError, json.JSONDecodeError) as f:
             raise HTTPException(422, str(f)) from f
         if plan.quelle is None:
@@ -164,13 +171,16 @@ def router(teile: Teile) -> APIRouter:
             gruppen = planen.zusammenfassen(planen.segmente_aus_untertiteln(inhalt))
             art = "untertitel"
         elif t.name.lower().endswith(".json"):
-            gruppen = planen.zusammenfassen(planen.segmente_aus_transkript(json.loads(inhalt)))
+            transkript = json.loads(inhalt)
+            gruppen = planen.zusammenfassen(planen.segmente_aus_transkript(transkript))
             art = "transkript"
         else:
             return QuelleVorschau(id=k.id, name=k.name, pfad=k.pfad, art="text", abschnitte=len(planen.saetze(inhalt)),
                                   text=inhalt[:4000])
         dauer = k.felder.get("dauer_s")
+        sprache = transkript.get("sprache") if art == "transkript" else None
         return QuelleVorschau(id=k.id, name=k.name, pfad=k.pfad, art=art if t.id == k.id else "medium",
+                              sprache=sprache if sprache not in ("", "auto") else None,
                               textquelle=t.name if t.id != k.id else None,
                               sprecher=list(dict.fromkeys(g.sprecher or "Sprecher" for g in gruppen)), abschnitte=len(gruppen),
                               dauer_s=float(dauer) if isinstance(dauer, (int, float)) else None)

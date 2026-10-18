@@ -27,12 +27,33 @@ def ton(dauer_s: float, frequenz: float = 220.0) -> bytes:
     return puffer.getvalue()
 
 
+def ton_stereo(dauer_s: float) -> bytes:
+    """Eine Aufnahme wie aus einem Video: 48 kHz Stereo, 16 Bit."""
+    t = np.arange(int(48000 * dauer_s)) / 48000
+    werte = (0.2 * np.sin(2 * np.pi * 150 * t) * 32767).astype("<i2")
+    puffer = io.BytesIO()
+    with wave.open(puffer, "wb") as w:
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(48000)
+        w.writeframes(np.repeat(werte, 2).tobytes())
+    return puffer.getvalue()
+
+
 class ScheinLeitstelle:
     def __init__(self) -> None:
         self.aufrufe: list[tuple[str, str]] = []      # (Stimme oder "klon", Text)
         self.dateien: dict[str, bytes] = {}
+        self.uebersetzt = 0
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/v1/chat/completions":          # Sprachmodell: übersetzt mit "DE: " davor
+            daten = json.loads(request.content)
+            stuecke = [json.loads(z) for z in daten["messages"][-1]["content"].splitlines() if z.startswith("{")]
+            self.uebersetzt += len(stuecke)
+            antwort = {"abschnitte": [{"nr": x["nr"], "text": f"DE: {x['text']}"} for x in stuecke]}
+            return httpx.Response(200, json={"model": "qwen/qwen3-next-80b", "choices": [
+                {"message": {"role": "assistant", "content": json.dumps(antwort)}, "finish_reason": "stop"}]})
         m = re.match(r"^/v1/dienste/([^/]+)/(.*)$", request.url.path)
         if m is None:
             return httpx.Response(404, json={"detail": "nicht da"})

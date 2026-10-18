@@ -58,7 +58,9 @@ class Bericht(BaseModel):
 class Abschnitt(BaseModel):
     nr: int = Field(ge=1)
     rolle: str
-    text: str = Field(min_length=1, max_length=5000)
+    text: str = Field(min_length=1, max_length=5000)        # was gesprochen wird (bei Übersetzung: die Übersetzung)
+    original: str | None = Field(None, max_length=5000)     # Text in der Sprache der Quelle, wenn übersetzt wird
+    uebersetzt_aus: str | None = None                       # Prüfsumme von Original und Zielsprache der Übersetzung
     start: float | None = Field(None, ge=0)
     ende: float | None = Field(None, ge=0)
     pause_danach_s: float = Field(0.35, ge=0, le=10)
@@ -70,10 +72,17 @@ class Abschnitt(BaseModel):
         roh = "\x1f".join([self.text.strip(), rolle.stimme.schluessel, f"{rolle.tempo:.3f}", sprache])
         return hashlib.sha256(roh.encode("utf-8")).hexdigest()[:20]
 
+    def uebersetzung_noetig(self, sprache: str) -> bool:
+        return self.original is not None and self.uebersetzt_aus != uebersetzungssumme(self.original, sprache)
+
     def stand(self, rolle: Rolle, sprache: str) -> Stand:
         if self.gesprochen_als is None:
             return "offen"
         return "gesprochen" if self.gesprochen_als == self.soll(rolle, sprache) else "geaendert"
+
+
+def uebersetzungssumme(original: str, sprache: str) -> str:
+    return hashlib.sha256(f"{original.strip()}\x1f{sprache}".encode("utf-8")).hexdigest()[:20]
 
 
 class Quelle(BaseModel):
@@ -100,7 +109,8 @@ class Plan(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     quelle: Quelle | None = None
     quelle_dauer_s: float | None = None    # zeitgenau: Länge der Aufnahme, das Ergebnis wird mindestens so lang
-    sprache: str = "de"
+    sprache: str = "de"                    # in dieser Sprache wird gesprochen
+    ausgangssprache: str | None = None     # Sprache der Quelle, wenn übersetzt wird
     rollen: list[Rolle] = Field(min_length=1)
     abschnitte: list[Abschnitt] = Field(default_factory=list)
     ziel: Ziel = Field(default_factory=Ziel)
@@ -126,4 +136,7 @@ class Plan(BaseModel):
         return a.stand(self.rolle(a.rolle), self.sprache)
 
     def zu_sprechen(self) -> list[Abschnitt]:
-        return [a for a in self.abschnitte if self.stand(a) != "gesprochen"]
+        return [a for a in self.abschnitte if self.stand(a) != "gesprochen" or a.uebersetzung_noetig(self.sprache)]
+
+    def zu_uebersetzen(self) -> list[Abschnitt]:
+        return [a for a in self.abschnitte if a.uebersetzung_noetig(self.sprache)]

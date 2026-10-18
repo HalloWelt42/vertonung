@@ -11,9 +11,10 @@ import httpx
 import pytest
 
 from appkern.testen import aktionen_zurueckziehen, aufraeumen, hat_kellerwolke, werte
+from appkern.ton import Ton
 
 from app.main import app_bauen
-from tests.schein import ADRESSE, ScheinLeitstelle, Weiche, ton
+from tests.schein import ADRESSE, ScheinLeitstelle, Weiche, ton, ton_stereo
 
 W = werte(Path(__file__).resolve().parents[1] / ".env.test")
 pytestmark = pytest.mark.skipif(not hat_kellerwolke(W), reason="kein eigener Testzugang eingerichtet (backend/.env.test)")
@@ -99,6 +100,34 @@ async def test_ganzer_weg(tmp_path: Path):
                 a = (await c.post(f"/api/v1/plaene/{d['id']}/vertonen", headers=h)).json()
                 await fertig(c, h, a["id"])
                 assert schein.aufrufe == [("serena", "Hörst du das?"), ("klon", "Nur der Wind.")]
+                # Zeitgenau aus englischen Untertiteln neben einer Aufnahme (48 kHz Stereo): übersetzen, sprechen, wie die Quelle
+                kw = g.kellerwolke
+                zweig = (await kw.ich()).zweig
+                proben = await kw.ordner(f"{zweig}/Proben Verbundtest")
+                angelegt.append(proben.id)
+                aufnahme = await kw.schreiben(f"{proben.pfad}/Verbundtest Show.wav", ton_stereo(12.0), inhaltstyp="audio/wav")
+                angelegt.append(aufnahme.id)
+                srt = ("1\n00:00:01,000 --> 00:00:03,000\nHello everyone.\n\n2\n00:00:04,000 --> 00:00:07,000\n"
+                       "Welcome to the show about rent.\n")
+                await kw.begleiter_schreiben(aufnahme.id, "untertitel", ".srt", srt.encode(), nur_neu=True, inhaltstyp="application/x-subrip")
+                q = (await c.get(f"/api/v1/quelle/{aufnahme.id}", headers=h)).json()
+                assert q["art"] == "medium" and q["abschnitte"] == 2 and q["textquelle"].endswith(".srt")
+                r = await c.post("/api/v1/plaene", headers=h, json={"art": "zeitgenau", "quelle_id": str(aufnahme.id), "ausgangssprache": "en"})
+                assert r.status_code == 201, r.text
+                z = r.json()
+                assert z["plan"]["ausgangssprache"] == "en" and z["plan"]["abschnitte"][0]["original"] == "Hello everyone."
+                a = (await c.post(f"/api/v1/plaene/{z['id']}/vertonen", headers=h)).json()
+                erg = (await fertig(c, h, a["id"]))["ergebnis"]
+                assert erg["pfad"].endswith("Verbundtest Show.sprache.wav") and schein.uebersetzt == 2
+                z = (await c.get(f"/api/v1/plaene/{z['id']}", headers=h)).json()
+                assert [x["text"] for x in z["plan"]["abschnitte"]] == ["DE: Hello everyone.", "DE: Welcome to the show about rent."]
+                assert [x["stand"] for x in z["staende"]] == ["gesprochen", "gesprochen"]
+                wav = await c.get(f"/api/v1/inhalt/plaene/{z['id']}/ergebnis", headers=h)
+                datei = tmp_path / "zeitgenau.wav"
+                datei.write_bytes(wav.content)
+                e = await Ton().eigenschaften(datei)
+                assert (e.rate, e.kanaele) == (48000, 2) and e.dauer_s >= 12.0
+
                 v = (await c.get("/api/v1/plaene", headers=h)).json()
                 assert {"Verbundtest Brief", "Verbundtest Szene"} <= {e["name"] for e in v["eintraege"]}
                 ton_ergebnis = await c.get(f"/api/v1/inhalt/plaene/{d['id']}/ergebnis", headers=h)
