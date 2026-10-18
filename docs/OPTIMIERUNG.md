@@ -25,6 +25,7 @@ Sprachen werden deutsch vertont.
 | K2 | (folgt) eine Anleitung mit Uhrzeiten, Preisen, Einheiten | 2 bis 5 min | en | Sprechfassung |
 | K3 | (folgt) ein Interview mit zwei Sprechern | 2 bis 5 min | en | Strecke 3 |
 | L1 | (folgt, erst nach K1 bis K3) | 15 bis 20 min | en | Dauer, Speicher, Zeitlage über lange Strecken |
+| T23 | echter TubeVault-Wunsch: Interview "Russia faces logistical winter nightmare" (Nachvertoner, Zeit-Stimme) | 15:23 | en | erster langer Lauf im Betrieb |
 
 ## Messgrößen
 
@@ -63,6 +64,8 @@ verfälschte Satzzeichen und Hörfehler ("Gangdom Style"); daher die vielen klei
 greift (2012, 30 Millionen Dollar, 65 %, 20 $).
 
 Ergebnis K2: Die eigene Transkription ist trotz des Hörens schneller und legt sauber in die Zeit (kein Versatz, kein Stauchen), die Aussprache ist gleichauf. Automatische Untertitel der Quelle nicht verwenden; Empfehlung für TubeVault: Vorgabe der Untertitel auf "nur vom Autor" (Einstellung des Nutzers). Für Originalstimmen (Strecke 2 und 3) ist die eigene Transkription ohnehin nötig (Wortzeiten, Sprecher).
+
+Betrieb T23 (0.7.x, über den Nachvertoner): 15:23 Video in 25,1 min vertont (1,6-fach), 45 Abschnitte, keine Ersatzstimme, an TubeVault geliefert. Ein zweiter Wunsch (#22) scheiterte, weil die Vertonung währenddessen ausgerollt wurde; seitdem wartet das Ausrollen auf laufende Aufträge (Appkern Lehre 29) und der Nachvertoner übersteht kurze Ausfälle.
 
 Befund Runde 2: Mit gemessenem Tempo wird weniger gestrafft und etwas mehr gestaucht (über "unauffällig" 1,15 in drei von sieben Abschnitten). Die meisten Abweichungen beim Zurückhören sind nur Schreibweisen (getrennt oder zusammen); sie zählen ab 0.7 nicht mehr. Echte Fälle: englische Namen und Begriffe werden deutsch gelesen (Citus wird Zitus, Control wird Kontroll, hstore wird h store). Nächste Runde: Sprechfassung mit Regeln (0.7) und dann der Umgang mit englischen Namen.
 
