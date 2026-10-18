@@ -63,15 +63,15 @@ class Sprechdienst:
 
     async def sprechen(self, text: str, stimme: Gewaehlt, sprache: str, tempo: float, ziel: Path, *, titel: str = "") -> Path:
         sprache_name = SPRACHNAMEN.get(sprache, "german")
-        if isinstance(stimme, Katalogstimme):
-            dienst = self._leitstelle().dienst(self._namen()[0])
-            antwort = await dienst.json("POST", "/tts", titel=titel,
-                                        json={"text": text, "voice": stimme.name, "language": sprache_name, "speed": tempo})
-        else:
-            dienst = self._leitstelle().dienst(self._namen()[1])
-            with open(stimme.referenz, "rb") as referenz:
-                antwort = await dienst.json("POST", "/tts/clone", titel=titel,
-                                            data={"text": text, "ref_text": stimme.referenztext, "language": sprache_name,
-                                                  "speed": str(tempo), "modus": stimme.modus},
-                                            files={"ref_audio": (stimme.referenz.name, referenz, "audio/wav")})
-        return await dienst.herunterladen(f"/tts/audio/{antwort['filename']}", ziel, titel=titel)
+        dienst = self._leitstelle().dienst(self._namen()[0 if isinstance(stimme, Katalogstimme) else 1])
+        async with dienst.gebunden():         # die Datei liegt bei der Instanz, die gesprochen hat
+            if isinstance(stimme, Katalogstimme):
+                antwort = await dienst.json("POST", "/tts", titel=titel,
+                                            json={"text": text, "voice": stimme.name, "language": sprache_name, "speed": tempo})
+            else:
+                with open(stimme.referenz, "rb") as referenz:
+                    antwort = await dienst.json("POST", "/tts/clone", titel=titel,
+                                                data={"text": text, "ref_text": stimme.referenztext, "language": sprache_name,
+                                                      "speed": str(tempo), "modus": stimme.modus},
+                                                files={"ref_audio": (stimme.referenz.name, referenz, "audio/wav")})
+            return await dienst.herunterladen(f"/tts/audio/{antwort['filename']}", ziel, titel=titel)
