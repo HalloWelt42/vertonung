@@ -1,0 +1,37 @@
+# Vertonung auf dem Pi: https://192.168.178.49:8641. Vorne Caddy mit dem Zertifikat der Hausstelle (tools/ausrollen.sh
+# stellt es aus), dahinter die App ohne TLS, nur im eigenen Netz erreichbar. Daten in ./daten.
+services:
+  vertonung:
+    build: .
+    image: vertonung:aktuell
+    container_name: vertonung
+    restart: unless-stopped
+    user: "1000:1000"
+    expose:
+      - "8000"
+    environment:
+      VERTONUNG_DATEN: /app/daten
+      VERTONUNG_CA_DATEI: /zertifikate/rootCA.pem
+    volumes:
+      - ./daten:/app/daten
+      - ./zertifikate:/zertifikate:ro
+      # Ortszeit des Pi (sonst UTC)
+      - /etc/localtime:/etc/localtime:ro
+      # ffmpeg und ffprobe vom Pi, nur lesend
+      - /usr/bin/ffmpeg:/host/usr/bin/ffmpeg:ro
+      - /usr/bin/ffprobe:/host/usr/bin/ffprobe:ro
+      - /usr/lib/aarch64-linux-gnu:/host/usr/lib/aarch64-linux-gnu:ro
+
+  vorne:
+    image: caddy:2.11.6-alpine
+    container_name: vertonung-vorne
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    depends_on: [vertonung]
+    ports:
+      - "8641:8641"
+    environment:
+      HAUPTADRESSE: ${HAUPTADRESSE:-192.168.178.49}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./zertifikate:/zertifikate:ro

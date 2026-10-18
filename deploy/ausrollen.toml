@@ -1,0 +1,8 @@
+# Ausrollen auf den Pi mit tools/ausrollen.sh (Ablauf und Prüfungen im Appkern: appkern.werkzeuge.ausrollen)
+kennung = "vertonung"
+rechner = "pi@192.168.178.49"
+wurzel = "/mnt/data/vertonung"
+adresse = "https://192.168.178.49:8641"
+repo = "https://github.com/HalloWelt42/vertonung.git"
+namen = ["192.168.178.49", "raspberrypi-3.fritz.box", "raspberrypi-3", "vertonung.fritz.box", "vertonung.local"]
+ton = true

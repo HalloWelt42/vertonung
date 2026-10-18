@@ -1,0 +1,11 @@
+name = "Vertonung"
+beschreibung = "macht aus Text Sprache"
+oberflaeche = "http://127.0.0.1:8641"
+
+[[teile]]
+kennung = "backend"
+name = "Backend"
+ordner = "/Users/alpha/Entwicklung/03_KI_Erstellung/vertonung/backend"
+befehl = [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8641", "--log-level", "warning"]
+port = 8641
+speicher_gb = 0.3
