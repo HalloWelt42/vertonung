@@ -71,3 +71,10 @@ def legen(stuecke: list[tuple[np.ndarray, float]], rate: int, mindestens_s: floa
         w = raender(werte, rate)
         aus[a:a + w.size] += w[:max(0, aus.size - a)]
     return aus
+
+
+def begrenzen(werte: np.ndarray, spitze: float = 0.98) -> np.ndarray:
+    """Liegt die Spitze darüber (etwa eine übersteuerte Quelle nach dem Umrechnen), wird das Ganze leiser; nie
+    abgeschnitten, nie verzerrt."""
+    hoch = float(np.max(np.abs(werte))) if werte.size else 0.0
+    return werte * (spitze / hoch) if hoch > spitze else werte

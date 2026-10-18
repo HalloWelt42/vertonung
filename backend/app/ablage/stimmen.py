@@ -60,7 +60,7 @@ async def probe_aufbereiten(ton: Ton, roh: Path, ziel: Path, mindestens_s: float
             raise ProbeZuKurz("In der Probe gibt es keine Stelle von 5 bis 7 Sekunden mit Pausen davor und danach; "
                               "bitte eine Aufnahme mit natürlichen Sprechpausen")
         werte, text = werte[int(k.von * RATE): int(k.bis * RATE)], k.text
-    werte = fuegen.raender(werte, RATE, KANTE_MS)
+    werte = fuegen.raender(fuegen.begrenzen(werte), RATE, KANTE_MS)
     werte = np.concatenate([np.zeros(int(RATE * VORLAUF_MS / 1000), np.float32), werte,
                             np.zeros(int(RATE * NACHLAUF_MS / 1000), np.float32)])
     await ton.schreiben(werte, RATE, ziel, REFERENZ)

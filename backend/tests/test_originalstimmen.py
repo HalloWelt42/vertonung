@@ -76,3 +76,11 @@ async def test_zuordnen(tmp_path):
     assert angaben.name == "Bernd (Interview)" and angaben.sprecherprofil == profil_b and angaben.bereich == "fremd"
     assert angaben.referenztext.startswith("b0 b1") and 5.0 <= dauer <= 7.4 and angaben.herkunft.art == "aufnahme"
     assert not (tmp_path / "arbeit").exists()
+
+
+
+def test_uebersteuerter_ausschnitt_wird_leiser_nie_abgeschnitten():
+    from app.originalstimmen import ausschneiden
+    werte = np.concatenate([np.zeros(RATE), 1.3 * np.sin(np.linspace(0, 200, RATE * 6)), np.zeros(RATE)]).astype(np.float32)
+    teil = ausschneiden(werte, 0.5, 7.5)
+    assert float(np.max(np.abs(teil))) <= 0.98 + 1e-6 and teil.size == 7 * RATE

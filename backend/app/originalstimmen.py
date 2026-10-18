@@ -10,6 +10,7 @@ Stelle hat, spricht mit der festen Stimme."""
 
 from __future__ import annotations
 
+import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,7 +23,9 @@ from appkern.ton import Tonformat
 from .modell.plan import StimmWahl
 from .modell.stimme import Herkunft, StimmAngaben
 from .referenz import WortZeit, beste
+from .werk.fuegen import begrenzen
 
+log = logging.getLogger("vertonung")
 RATE = 24000
 REFERENZ = Tonformat(rate=RATE, kanaele=1, kodierung="pcm_s16le")
 AEHNLICH = 0.8               # ein Vorschlag der Transkription gilt ab dieser Ähnlichkeit als derselbe Sprecher
@@ -64,7 +67,7 @@ def woerter_aus(transkript: dict) -> list[WortZeit]:
 
 
 def ausschneiden(werte: np.ndarray, von: float, bis: float) -> np.ndarray:
-    teil = werte[int(von * RATE): int(bis * RATE)].astype(np.float32).copy()
+    teil = begrenzen(werte[int(von * RATE): int(bis * RATE)].astype(np.float32).copy())
     n = min(int(BLENDE_S * RATE), teil.size // 2)
     if n:
         rampe = np.linspace(0.0, 1.0, n, dtype=np.float32)
@@ -109,13 +112,18 @@ async def zuordnen(teile, transkript: dict, haupt, video: str, sprache_quelle: s
             if k is None:
                 aus.append(Zuordnung(name, ersatz, "ersatz", "keine Stelle von 5 bis 7 Sekunden mit Pausen an beiden Rändern"))
                 continue
-            datei = arbeit / f"referenz-{s['kennung']}.wav"
-            await teile.ton_jetzt.schreiben(ausschneiden(werte, k.von, k.bis), RATE, datei, REFERENZ)
-            stimme = await _anlegen(teile, StimmAngaben(
-                name=f"{name} ({video})"[:80], bereich="fremd", sprache=sprache_quelle, referenztext=k.text,
-                herkunft=Herkunft(art="aufnahme", knoten_id=haupt.id, pfad=haupt.pfad, start=k.von, ende=k.bis),
-                sprecherprofil=profil, abdruck=s.get("abdruck"), notiz=f"Automatisch gewonnen, Wertung {k.wertung:.2f}"),
-                datei, round(k.dauer_s, 2))
+            try:
+                datei = arbeit / f"referenz-{s['kennung']}.wav"
+                await teile.ton_jetzt.schreiben(ausschneiden(werte, k.von, k.bis), RATE, datei, REFERENZ)
+                stimme = await _anlegen(teile, StimmAngaben(
+                    name=f"{name} ({video})"[:80], bereich="fremd", sprache=sprache_quelle, referenztext=k.text,
+                    herkunft=Herkunft(art="aufnahme", knoten_id=haupt.id, pfad=haupt.pfad, start=k.von, ende=k.bis),
+                    sprecherprofil=profil, abdruck=s.get("abdruck"), notiz=f"Automatisch gewonnen, Wertung {k.wertung:.2f}"),
+                    datei, round(k.dauer_s, 2))
+            except Exception as f:  # noqa: BLE001 - ein Sprecher ohne Stimme hält die Vertonung nicht auf
+                log.warning("Stimme für %s nicht gewonnen", name, exc_info=True)
+                aus.append(Zuordnung(name, ersatz, "ersatz", f"Gewinnen gescheitert: {type(f).__name__}: {f}"[:200]))
+                continue
             if profil:
                 bekannte[profil] = stimme.id
             if s.get("abdruck"):
