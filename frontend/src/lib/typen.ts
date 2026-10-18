@@ -57,6 +57,7 @@ export interface Bericht {
   stauchung: number;
   versatz_s: number;
   aussprache: number | null;       // Wortfehlerquote beim Zurückhören (0 bis 1), null: nicht geprüft
+  woerter: number | null;          // Wörter des Gesprochenen beim Abgleich (Gewicht)
   abweichungen: string[];          // "soll -> gehört"
 }
 
@@ -87,6 +88,7 @@ export interface Plan {
   ziel: { format: Format | "wie_quelle" };
   ergebnis: { knoten_id: string; pfad: string; dauer_s: number; erstellt_am: string; wellenform: number[] } | null;
   geaendert_am: string;
+  aussprache: { quote: number; auffaellig: number; geprueft: number } | null;   // vom Server, nach Wörtern gewichtet
 }
 
 export interface AbschnittStand {

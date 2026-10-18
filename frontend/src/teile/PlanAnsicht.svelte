@@ -114,13 +114,6 @@
   const AUSSPRACHE_HINWEIS = 0.15;     // wie im Server (modell/plan.py)
   const prozent = (x: number) => `${Math.round(x * 100)} %`;
 
-  /** Zusammenfassung der Ausspracheprüfung eines Plans; null, wenn kein Abschnitt geprüft ist. */
-  function aussprache(p: Plan): { auffaellig: number; mittel: number } | null {
-    const quoten = p.abschnitte.map((a) => a.bericht?.aussprache).filter((q): q is number => q != null);
-    if (!quoten.length) return null;
-    return { auffaellig: quoten.filter((q) => q > AUSSPRACHE_HINWEIS).length, mittel: quoten.reduce((n, q) => n + q, 0) / quoten.length };
-  }
-
   function hinweisPillen(a: Abschnitt): { klasse: string; text: string; titel?: string }[] {
     const b = a.bericht;
     if (!b) return [];
@@ -213,10 +206,10 @@
       {/if}
       <div><i class="fa-solid {p.abschnitte.some((a) => a.bericht?.ersatz) ? 'fa-triangle-exclamation' : 'fa-check'}" style="color:var({p.abschnitte.some((a) => a.bericht?.ersatz) ? '--warn' : '--gut'})"></i>
         <span>{p.abschnitte.filter((a) => a.bericht?.ersatz).length || "keine"} mit Ersatzstimme</span></div>
-      {#if aussprache(p)}
-        {@const x = aussprache(p)!}
-        <div><i class="fa-solid fa-spell-check" style="color:var({x.auffaellig ? '--warn' : '--gut'})"></i>
-          <span>Aussprache: {x.auffaellig || "keine"} auffällig, im Mittel {prozent(x.mittel)} Abweichung</span></div>
+      {#if p.aussprache}
+        {@const x = p.aussprache}
+        <div title="Beim Zurückhören abweichende Wörter, über alle geprüften Abschnitte nach Wörtern gewichtet"><i class="fa-solid fa-spell-check" style="color:var({x.auffaellig ? '--warn' : '--gut'})"></i>
+          <span>Aussprache: {x.auffaellig || "keine"} auffällig, {prozent(x.quote)} der Wörter abweichend</span></div>
       {/if}
     </div>
   </div>

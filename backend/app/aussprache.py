@@ -28,6 +28,7 @@ _ZEICHEN = re.compile(r"[^\w\s]", re.UNICODE)
 class Abgleich:
     quote: float                 # (ersetzt + fehlend + zusätzlich) / Wörter im Text
     abweichungen: list[str]      # "soll -> gehört", "soll -> (fehlt)", "(zusätzlich) -> gehört"
+    woerter: int = 0             # Wörter im Text (Gewicht der Quote über den ganzen Plan)
 
 
 def woerter(text: str) -> list[str]:
@@ -38,7 +39,7 @@ def woerter(text: str) -> list[str]:
 def abgleichen(soll: str, gehoert: str) -> Abgleich:
     a, b = woerter(soll), woerter(gehoert)
     if not a:
-        return Abgleich(0.0, [])
+        return Abgleich(0.0, [], 0)
     fehler, abweichungen = 0, []
     for art, i1, i2, j1, j2 in SequenceMatcher(a=a, b=b, autojunk=False).get_opcodes():
         if art == "equal" or "".join(a[i1:i2]) == "".join(b[j1:j2]):   # nur getrennt oder zusammen geschrieben
@@ -46,7 +47,7 @@ def abgleichen(soll: str, gehoert: str) -> Abgleich:
         fehler += max(i2 - i1, j2 - j1)
         links, rechts = " ".join(a[i1:i2]) or "(zusätzlich)", " ".join(b[j1:j2]) or "(fehlt)"
         abweichungen.append(f"{links} -> {rechts}")
-    return Abgleich(round(min(fehler / len(a), 1.0), 3), abweichungen[:HOECHSTENS_ABWEICHUNGEN])
+    return Abgleich(round(min(fehler / len(a), 1.0), 3), abweichungen[:HOECHSTENS_ABWEICHUNGEN], len(a))
 
 
 STUECK_S = 300.0      # so viel Ergebnis je Hör-Anfrage (geteilt an Abschnittsgrenzen)
@@ -97,6 +98,6 @@ async def pruefen(gelaufen: Plan, ergebnis: Path, dauer_s: float, arbeit: Path, 
         if a.nr in woerter and a.bericht is not None:
             # verglichen wird mit dem Gesprochenen; gehörte Ziffern werden nach denselben Regeln ausgeschrieben
             abgleich = abgleichen(a.gesprochen(sprache), sprechbar(" ".join(woerter[a.nr]), sprache))
-            a.bericht = a.bericht.model_copy(update={"aussprache": abgleich.quote, "abweichungen": abgleich.abweichungen})
+            a.bericht = a.bericht.model_copy(update={"aussprache": abgleich.quote, "woerter": abgleich.woerter, "abweichungen": abgleich.abweichungen})
             geprueft += 1
     return geprueft

@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator
 
 Art = Literal["vorlesen", "dialog", "zeitgenau"]
 ARTEN: dict[str, str] = {"vorlesen": "Vorlesen", "dialog": "Dialog", "zeitgenau": "Zeitgenau"}
@@ -60,6 +60,7 @@ class Bericht(BaseModel):
     stauchung: float = 1.0
     versatz_s: float = 0.0
     aussprache: float | None = None                         # 0 bis 1; None: nicht geprüft
+    woerter: int | None = None                              # Wörter des Gesprochenen beim Abgleich: Gewicht der Quote
     abweichungen: list[str] = Field(default_factory=list)   # "soll -> gehört", höchstens acht
 
     @property
@@ -117,6 +118,14 @@ class Ziel(BaseModel):
     format: Zielformat = "mp3"
 
 
+class Aussprachebild(BaseModel):
+    """Ausspracheprüfung über den ganzen Plan."""
+
+    quote: float          # nach Wörtern gewichtet: ein verhörter Einwurf aus einem Wort zählt ein Wort, nicht einen Abschnitt
+    auffaellig: int       # Abschnitte über AUSSPRACHE_HINWEIS
+    geprueft: int
+
+
 class Ergebnis(BaseModel):
     knoten_id: UUID
     pfad: str
@@ -150,6 +159,18 @@ class Plan(BaseModel):
         if self.art == "zeitgenau" and any(a.start is None or a.ende is None for a in self.abschnitte):
             raise ValueError("Zeitgenau braucht Zeiten in jedem Abschnitt")
         return self
+
+    @computed_field
+    @property
+    def aussprache(self) -> Aussprachebild | None:
+        """Gesamtquote der Ausspracheprüfung, nach Wörtern gewichtet (K3c, 18.10.2026: kurze Einwürfe trieben das
+        einfache Mittel auf 18 %). Ältere Berichte ohne Wortzahl zählen je Abschnitt einmal."""
+        geprueft = [a.bericht for a in self.abschnitte if a.bericht is not None and a.bericht.aussprache is not None]
+        if not geprueft:
+            return None
+        gewicht = sum(b.woerter or 1 for b in geprueft)
+        return Aussprachebild(quote=round(sum((b.aussprache or 0.0) * (b.woerter or 1) for b in geprueft) / gewicht, 3),
+                              auffaellig=sum(1 for b in geprueft if (b.aussprache or 0.0) > AUSSPRACHE_HINWEIS), geprueft=len(geprueft))
 
     def rolle(self, kennung: str) -> Rolle:
         return next(r for r in self.rollen if r.kennung == kennung)
