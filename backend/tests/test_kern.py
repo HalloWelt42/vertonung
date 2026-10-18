@@ -168,3 +168,12 @@ def test_klonmodus_nach_sprache_der_stimme():
     ohne_text = Klonstimme(referenz=Path("r.wav"), referenztext=" ", sprache="de")
     assert mit_modus(ohne_text, "icl", "de", "icl").modus == "abdruck"          # ohne Text nie ICL
     assert mit_modus(Katalogstimme("serena"), "abdruck", "de", "icl") == Katalogstimme("serena")
+
+
+def test_ohne_satzzeichen_keine_riesenabschnitte():
+    from app.planen import ZUSAMMEN_HOECHSTENS_S, Segment, zusammenfassen
+    segmente = [Segment(i * 20.0, i * 20.0 + 20.0, f"teil {i} ohne satzende", "s1") for i in range(10)]
+    gruppen = zusammenfassen(segmente)
+    assert len(gruppen) == 10 and all(g.ende - g.start <= ZUSAMMEN_HOECHSTENS_S for g in gruppen)
+    kurz = [Segment(i * 4.0, i * 4.0 + 4.0, f"stück {i}", "s1") for i in range(10)]    # 40 s in Stücken von 4 s
+    assert [round(g.ende - g.start) for g in zusammenfassen(kurz)] == [24, 16]

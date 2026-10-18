@@ -18,6 +18,8 @@ PAUSE_SATZ_S = 0.35
 PAUSE_ABSATZ_S = 0.8
 PAUSE_DIALOG_S = 0.45
 NEU_NACH_PAUSE_S = 1.2
+ZUSAMMEN_HOECHSTENS_S = 25.0   # länger wird nicht zusammengefasst: sonst fehlt die Zeitlage im Abschnitt (Transkripte
+                               # ohne Satzzeichen wurden sonst zu einem einzigen Abschnitt, K3 18.10.2026)
 KURZ_ZEICHEN = 20
 KURZ_PAUSE_S = 2.0
 _SATZENDE = re.compile("[.!?" + ELLIPSE + "][" + re.escape(SCHLUSSZEICHEN) + "]*$")
@@ -75,7 +77,7 @@ def zusammenfassen(segmente: list[Segment]) -> list[Segment]:
     for s in sorted((s for s in segmente if s.text.strip()), key=lambda s: s.start):
         g = gruppen[-1] if gruppen else None
         if (g is not None and s.sprecher == g.sprecher and s.start - g.ende <= NEU_NACH_PAUSE_S
-                and not _SATZENDE.search(g.text)):
+                and not _SATZENDE.search(g.text) and s.ende - g.start <= ZUSAMMEN_HOECHSTENS_S):
             g.text = f"{g.text} {s.text.strip()}"
             g.ende = max(g.ende, s.ende)
         else:
