@@ -49,6 +49,7 @@ class DienstEingabe(BaseModel):
     sprache: str = "de"
     stimme: StimmWahl | None = None             # eine Stimme für alle Sprecher (ohne: die Stimme ab Werk)
     stimmen: Literal["fest", "original"] = "fest"   # original: je Sprecher seine Stimme aus dem Video, `stimme` als Ersatz
+    sprecher_anzahl: int | None = Field(None, ge=1, le=20)   # bekannt: macht die Sprechertrennung verlässlich (OPTIMIERUNG K3)
     klonmodus: Klonmodus = "auto"               # für Messungen und Sonderfälle; auto entscheidet nach Sprache der Stimme
     format: Literal["wie_quelle", "m4a"] = "m4a"
     von: str | None = None
@@ -87,6 +88,17 @@ async def transkript_abwarten(kw, haupt_id, anfrage_id: str, seit: float, k: Kon
         await asyncio.sleep(takt_s)
 
 
+def weitergabe_optionen(e: DienstEingabe) -> dict:
+    """Was die Transkription mitbekommt: Sprache der Quelle; bei Originalstimmen die Sprechertrennung und, wenn bekannt,
+    die Zahl der Sprecher (ohne sie kippt die Trennung bei kleinen Tonunterschieden auf einen Sprecher, OPTIMIERUNG K3)."""
+    optionen: dict = {"sprache": e.ausgangssprache or "auto"}
+    if e.stimmen == "original":
+        optionen["sprecher"] = "trennung"     # Originalstimmen brauchen Sprecher und Wortzeiten
+        if e.sprecher_anzahl:
+            optionen["anzahl"] = e.sprecher_anzahl
+    return optionen
+
+
 async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
     from .arten import plan_ausfuehren       # spät: arten bindet diesen Ablauf als Art ein
 
@@ -98,10 +110,7 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
     text = next((b for b in await kw.begleiter(haupt.id) if b.rolle in TEXTROLLEN), None)
     if text is None:
         if "weitergegeben" not in k.zwischenstand:
-            optionen = {"sprache": e.ausgangssprache or "auto"}
-            if e.stimmen == "original":
-                optionen["sprecher"] = "trennung"     # Originalstimmen brauchen Sprecher und Wortzeiten
-            neu = await kw.weitergeben(teile.einstellungen.transkription_app, "transkribieren", haupt.id, optionen)
+            neu = await kw.weitergeben(teile.einstellungen.transkription_app, "transkribieren", haupt.id, weitergabe_optionen(e))
             await k.merken(weitergegeben=str(neu.anfrage.id), seit=time.time())
         text = await transkript_abwarten(kw, haupt.id, k.zwischenstand["weitergegeben"],
                                          float(k.zwischenstand.get("seit", time.time())), k)
