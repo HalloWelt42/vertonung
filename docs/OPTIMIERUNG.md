@@ -49,6 +49,9 @@ Sprachen werden deutsch vertont.
 | Runde | Fassung | K1 Dauer | Länge (Quelle 156,5 s) | Versatz max | Stauchung Mittel/max | Aussprache Mittel/max |
 |---|---|---|---|---|---|---|
 | 1 | 0.5.3 | 9:15 (3,5-fach) | 156,5 s | 0 | 1,00 / 1,02 | (noch nicht gemessen) |
+| 2 | 0.6.0 | 6:42 (2,6-fach) | 156,5 s | 0 | 1,13 / 1,24 | 3,0 % / 5,3 % |
+
+Befund Runde 2: Mit gemessenem Tempo wird weniger gestrafft und etwas mehr gestaucht (über "unauffällig" 1,15 in drei von sieben Abschnitten). Die meisten Abweichungen beim Zurückhören sind nur Schreibweisen (getrennt oder zusammen); sie zählen ab 0.7 nicht mehr. Echte Fälle: englische Namen und Begriffe werden deutsch gelesen (Citus wird Zitus, Control wird Kontroll, hstore wird h store). Nächste Runde: Sprechfassung mit Regeln (0.7) und dann der Umgang mit englischen Namen.
 
 Befund Runde 1: Die Zeit-Stimme spricht rund 17 Zeichen je Sekunde (Katalogstimme serena 11,6); gerechnet wurde noch mit der Vorgabe 11,5, die Übersetzung wurde also stärker gestrafft als nötig. Das Tempo ist jetzt gemessen. Sprechen kostet am meisten (40 bis 60 s je Abschnitt von 12 bis 39 s).
 

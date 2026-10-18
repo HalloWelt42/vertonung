@@ -14,6 +14,7 @@ def test_abweichungen_und_quote():
     a = abgleichen("Er nutzt zweiundvierzig Tabellen heute", "er nutzt 42 tabellen")
     assert a.quote == 0.4 and a.abweichungen == ["zweiundvierzig -> 42", "heute -> (fehlt)"]
     assert abgleichen("", "irgendwas").quote == 0.0
+    assert abgleichen("die objektrelationale Datenbank mit Auto Scaling", "die objekt relationale datenbank mit autoscaling").quote == 0.0
 
 
 def test_hinweis_ab_der_schwelle():

@@ -42,7 +42,7 @@ def abgleichen(soll: str, gehoert: str) -> Abgleich:
         return Abgleich(0.0, [])
     fehler, abweichungen = 0, []
     for art, i1, i2, j1, j2 in SequenceMatcher(a=a, b=b, autojunk=False).get_opcodes():
-        if art == "equal":
+        if art == "equal" or "".join(a[i1:i2]) == "".join(b[j1:j2]):   # nur getrennt oder zusammen geschrieben
             continue
         fehler += max(i2 - i1, j2 - j1)
         links, rechts = " ".join(a[i1:i2]) or "(zusätzlich)", " ".join(b[j1:j2]) or "(fehlt)"
