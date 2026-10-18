@@ -130,3 +130,28 @@ def test_angaben_der_alten_stimmenausgabe_werden_umgestellt():
     a = aus_alter_app(alt, "fremd")
     assert (a.format, a.name, a.bereich, a.sprache, a.referenztext) == ("stimme/1", "Kerstin", "fremd", "de", "Guten Tag.")
     assert a.herkunft.art == "uebernommen" and "aus einer Aufnahme gewonnen" in a.notiz
+
+
+async def test_gescheiterte_transkription_beendet_das_warten():
+    import time
+    from types import SimpleNamespace
+
+    import pytest
+
+    from app.dienst import TranskriptionGescheitert, transkript_abwarten
+
+    class Kw:
+        def __init__(self, zustaende):
+            self.zustaende = zustaende
+
+        async def begleiter(self, _):
+            return []
+
+        async def anfrage(self, _):
+            return SimpleNamespace(zustand=self.zustaende.pop(0), meldung="Hördienst nicht erreichbar")
+
+    async def nichts(*_, **__):
+        return None
+    k = SimpleNamespace(pruefen=nichts, fortschritt=nichts)
+    with pytest.raises(TranskriptionGescheitert, match="Hördienst nicht erreichbar"):
+        await transkript_abwarten(Kw(["laeuft", "fehler"]), "h", "a", time.time(), k, takt_s=0)

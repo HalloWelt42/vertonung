@@ -27,6 +27,10 @@ WARTEN_S = 15
 HOECHSTENS_WARTEN_S = 6 * 3600
 
 
+class TranskriptionGescheitert(Exception):
+    """Die weitergegebene Anfrage an die Transkription endete ohne Transkript."""
+
+
 class DienstSegment(BaseModel):
     start: float = Field(ge=0)
     ende: float = Field(ge=0)
@@ -61,6 +65,23 @@ def transkript_aus_segmenten(name: str, haupt_id: UUID, pfad: str, segmente: lis
     return json.dumps(t, ensure_ascii=False, indent=1).encode("utf-8")
 
 
+async def transkript_abwarten(kw, haupt_id, anfrage_id: str, seit: float, k: Kontext, takt_s: float = WARTEN_S):
+    """Bis das Transkript neben der Aufnahme liegt; scheitert die Anfrage an die Transkription, sofort mit ihrer
+    Meldung (den Stand der weitergegebenen Anfrage liest die Kellerwolke ab 0.86.1)."""
+    while True:
+        text = next((b for b in await kw.begleiter(haupt_id) if b.rolle in TEXTROLLEN), None)
+        if text is not None:
+            return text
+        await k.pruefen()
+        if time.time() - seit > HOECHSTENS_WARTEN_S:
+            raise TimeoutError("Die Transkription hat in sechs Stunden kein Transkript geliefert")
+        anfrage = await kw.anfrage(anfrage_id)
+        if anfrage.zustand in ("fehler", "abgebrochen"):
+            raise TranskriptionGescheitert(f"Transkription: {anfrage.meldung or anfrage.zustand}")
+        await k.fortschritt(None, f"Transkription: {anfrage.meldung or 'wartet'}", phase="vorbereiten")
+        await asyncio.sleep(takt_s)
+
+
 async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
     from .arten import plan_ausfuehren       # spät: arten bindet diesen Ablauf als Art ein
 
@@ -77,14 +98,8 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
                 optionen["sprecher"] = "trennung"     # Originalstimmen brauchen Sprecher und Wortzeiten
             neu = await kw.weitergeben(teile.einstellungen.transkription_app, "transkribieren", haupt.id, optionen)
             await k.merken(weitergegeben=str(neu.anfrage.id), seit=time.time())
-        seit = float(k.zwischenstand.get("seit", time.time()))
-        while text is None:
-            await k.pruefen()
-            if time.time() - seit > HOECHSTENS_WARTEN_S:
-                raise TimeoutError("Die Transkription hat in sechs Stunden kein Transkript geliefert")
-            await k.fortschritt(None, "Wartet auf das Transkript der Transkription", phase="vorbereiten")
-            await asyncio.sleep(WARTEN_S)
-            text = next((b for b in await kw.begleiter(haupt.id) if b.rolle in TEXTROLLEN), None)
+        text = await transkript_abwarten(kw, haupt.id, k.zwischenstand["weitergegeben"],
+                                         float(k.zwischenstand.get("seit", time.time())), k)
     plan_id = k.zwischenstand.get("plan_id")
     if plan_id is None:
         inhalt = (await kw.lesen_ganz(text.id)).decode("utf-8", "replace")
