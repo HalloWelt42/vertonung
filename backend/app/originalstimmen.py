@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from appkern.kellerwolke import StandVeraltet
-from appkern.ton import Aufbereiten, Ausgabe, Messen, Tonformat
+from appkern.ton import Aufbereiten, Ausgabe, Messen, Tonarbeit, Tonformat
 
 from .modell.plan import StimmWahl
 from .modell.stimme import Herkunft, StimmAngaben
@@ -67,8 +67,11 @@ def woerter_aus(transkript: dict) -> list[WortZeit]:
     return sorted(aus, key=lambda w: w.start)
 
 
-async def zuordnen(teile, transkript: dict, haupt, video: str, sprache_quelle: str, ersatz: StimmWahl, arbeit: Path) -> list[Zuordnung]:
-    """Je Sprecher des Transkripts eine Stimme; der Ton der Aufnahme wird nur geholt, wenn eine Stimme zu gewinnen ist."""
+async def zuordnen(teile, transkript: dict, haupt, video: str, sprache_quelle: str, ersatz: StimmWahl, arbeit: Path,
+                   ton: Tonarbeit | None = None) -> list[Zuordnung]:
+    """Je Sprecher des Transkripts eine Stimme; der Ton der Aufnahme wird nur geholt, wenn eine Stimme zu gewinnen ist.
+    `ton`: die Tonarbeit des Auftrags (geduldig), sonst die der App."""
+    ton = ton or teile.ton
     bekannte: dict[str, str] = {}
     abdruecke: list[tuple[str, list[float]]] = []
     for bereich in ("fremd", "privat"):
@@ -79,7 +82,7 @@ async def zuordnen(teile, transkript: dict, haupt, video: str, sprache_quelle: s
                 abdruecke.append((s.id, s.angaben.abdruck))
     woerter = woerter_aus(transkript)
     arbeit.mkdir(parents=True, exist_ok=True)
-    ton: Path | None = None
+    quelle: Path | None = None
     pegel = None
     aus: dict[str, Zuordnung] = {}
     zu_gewinnen: list[tuple[dict, str, str | None, Kandidat]] = []
@@ -97,28 +100,29 @@ async def zuordnen(teile, transkript: dict, haupt, video: str, sprache_quelle: s
                     aus[name] = Zuordnung(name, StimmWahl(art="klon", knoten_id=beste_id), "wiedererkannt", f"Ähnlichkeit {wert:.2f}")
                     continue
             if pegel is None:
-                ton = arbeit / f"quelle{Path(haupt.name).suffix.lower() or '.wav'}"
-                await teile.zugang().herunterladen(haupt.id, ton)
-                pegel = (await teile.ton.aufbereiten(ton, Aufbereiten(messen=Messen(pegel_ms=int(FENSTER_S * 1000))), [],
-                                                     titel=f"{video}, Pegel der Sprecher")).messwerte.pegel
+                quelle = arbeit / f"quelle{Path(haupt.name).suffix.lower() or '.wav'}"
+                await teile.zugang().herunterladen(haupt.id, quelle)
+                pegel = (await ton.aufbereiten(quelle, Aufbereiten(messen=Messen(pegel_ms=int(FENSTER_S * 1000))), [],
+                                               titel=f"{video}, Pegel der Sprecher")).messwerte.pegel
             k = beste(pegel, woerter, s["kennung"])
             if k is None:
                 aus[name] = Zuordnung(name, ersatz, "ersatz", "keine Stelle von 5 bis 7 Sekunden mit Pausen an beiden Rändern")
                 continue
             zu_gewinnen.append((s, name, profil, k))
         if zu_gewinnen:
-            await _gewinnen(teile, zu_gewinnen, ton, haupt, video, sprache_quelle, ersatz, arbeit, aus, bekannte, abdruecke)
+            await _gewinnen(teile, ton, zu_gewinnen, quelle, haupt, video, sprache_quelle, ersatz, arbeit, aus, bekannte, abdruecke)
     finally:
         shutil.rmtree(arbeit, ignore_errors=True)
     return [aus[s.get("name") or s["kennung"]] for s in sprecher]
 
 
-async def _gewinnen(teile, zu_gewinnen, ton: Path, haupt, video: str, sprache_quelle: str, ersatz: StimmWahl, arbeit: Path,
-                    aus: dict[str, Zuordnung], bekannte: dict[str, str], abdruecke: list[tuple[str, list[float]]]) -> None:
+async def _gewinnen(teile, ton: Tonarbeit, zu_gewinnen, quelle: Path, haupt, video: str, sprache_quelle: str, ersatz: StimmWahl,
+                    arbeit: Path, aus: dict[str, Zuordnung], bekannte: dict[str, str],
+                    abdruecke: list[tuple[str, list[float]]]) -> None:
     """Alle Ausschnitte in einem Aufruf des Tondienstes, dann je Sprecher eine fremde Stimme anlegen."""
     dateien = [arbeit / f"referenz-{s['kennung']}.wav" for s, *_ in zu_gewinnen]
     try:
-        erg = await teile.ton.aufbereiten(ton, Aufbereiten(ausgaben=[
+        erg = await ton.aufbereiten(quelle, Aufbereiten(ausgaben=[
             Ausgabe(format=REFERENZ, beginn_s=k.von, ende_s=k.bis, spitze=SPITZE, blende_ms=BLENDE_MS) for *_, k in zu_gewinnen]),
             dateien, titel=f"{video}, Stimmen ausschneiden")
     except Exception as f:  # noqa: BLE001 - ohne Ausschnitt spricht die Ersatzstimme; die Vertonung geht weiter

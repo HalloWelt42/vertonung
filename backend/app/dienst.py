@@ -21,6 +21,7 @@ from appkern.auftraege import Kontext
 from . import originalstimmen, planen
 from .ablage import orte
 from .dienstablage import Ablage
+from .geduld import Geduld
 from .modell.plan import Klonmodus, Quelle, StimmWahl, Ziel
 from .teile import Teile
 from .werk.zeitlage import spannen
@@ -120,7 +121,7 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
         je_sprecher: dict[str, StimmWahl] = {}
         if e.stimmen == "original" and transkript is not None:
             zuordnung = await originalstimmen.zuordnen(teile, transkript, haupt, e.name, ausgang or "en", stimme,
-                                                       teile.arbeit / f"{k.auftrag_id}-stimmen")
+                                                       teile.arbeit / f"{k.auftrag_id}-stimmen", Geduld.fuer(k).ton(teile.ton))
             je_sprecher = {z.sprecher: z.wahl for z in zuordnung}
             await k.merken(stimmen={z.sprecher: z.weg for z in zuordnung})
         dauer = haupt.felder.get("dauer_s")

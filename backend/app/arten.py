@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from appkern.anfragen import Angebot
 from appkern.auftraege import Art, Kontext, Phase
 from appkern.kellerwolke import Aktion, Kellerwolke, StandVeraltet
-from appkern.ton import Tonformat
+from appkern.ton import Tonarbeit, Tonformat
 
 from .modell.plan import Ergebnis, Plan
 from .sprechen import KeineLeitstelle
@@ -28,6 +28,7 @@ from . import aussprache
 from .tempo import Probe
 from .uebersetzen import knapper_fassen, plan_uebersetzen, zu_lang
 from .werk.werk import ziel_format
+from .geduld import Geduld, GeduldigeLeitstelle
 
 KOPF_BYTES = 4 * 1024 * 1024      # zum Messen des Quellformats reicht meist der Anfang der Datei
 
@@ -38,7 +39,7 @@ class VertonenEingabe(BaseModel):
     von: str | None = None
 
 
-async def quelle_messen(teile: Teile, kw: Kellerwolke, haupt_id: UUID, ordner: Path) -> tuple[Tonformat, float]:
+async def quelle_messen(teile: Teile, kw: Kellerwolke, haupt_id: UUID, ordner: Path, ton: Tonarbeit) -> tuple[Tonformat, float]:
     """Rate, Kanäle und Dauer der Aufnahme: erst aus dem Anfang der Datei, sonst aus der ganzen."""
     knoten = await kw.knoten(haupt_id)
     kopf = ordner / f"quelle{Path(knoten.name).suffix.lower()}"
@@ -46,12 +47,12 @@ async def quelle_messen(teile: Teile, kw: Kellerwolke, haupt_id: UUID, ordner: P
         async for stueck in kw.lesen(haupt_id, start=0, ende=KOPF_BYTES - 1):
             datei.write(stueck)
     try:
-        e = await teile.ton.eigenschaften(kopf, titel=f"{knoten.name}, messen")
+        e = await ton.eigenschaften(kopf, titel=f"{knoten.name}, messen")
         if not (e.rate and e.kanaele) or (knoten.groesse or 0) > KOPF_BYTES and e.dauer_s <= 0:
             raise ValueError("Kopf reicht nicht")
     except Exception:  # noqa: BLE001 - etwa MP4 mit dem Inhaltsverzeichnis am Ende: dann die ganze Datei
         await kw.herunterladen(haupt_id, kopf)
-        e = await teile.ton.eigenschaften(kopf, titel=f"{knoten.name}, messen")
+        e = await ton.eigenschaften(kopf, titel=f"{knoten.name}, messen")
     dauer = knoten.felder.get("dauer_s") or e.dauer_s
     return Tonformat(rate=e.rate or 48000, kanaele=min(e.kanaele or 2, 8), kodierung="pcm_s16le"), float(dauer)
 
@@ -87,6 +88,8 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
     einst = teile.einstellungen
     ordner = teile.arbeit / k.auftrag_id
     ordner.mkdir(parents=True, exist_ok=True)
+    geduld = Geduld.fuer(k)
+    ton = geduld.ton(teile.ton)
     try:
         await k.fortschritt(0.0, "Vorbereiten", phase="vorbereiten")
         plan, knoten = await plaene.lesen(plan_id)
@@ -108,13 +111,13 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
 
             je_s = {r.kennung: await teile.tempo.zeichen_je_s(await teile.tempo_schluessel(r, plan.sprache), plan.sprache) * r.tempo
                     for r in plan.rollen}
-            neu = await plan_uebersetzen(plan, ls, zeichen_je_s=je_s, komfort=einst.komfort, hoechstens=einst.hoechstens,
+            neu = await plan_uebersetzen(plan, GeduldigeLeitstelle(ls, geduld), zeichen_je_s=je_s, komfort=einst.komfort, hoechstens=einst.hoechstens,
                                          fortschritt=uebersetzt, pruefen=k.pruefen, merken=merken,
                                          modell=einst.uebersetzen_modell or None)
             await k.merken(uebersetzt=sorted(set(k.zwischenstand.get("uebersetzt", [])) | set(neu)))
         quelle: Tonformat | None = None
         if plan.art == "zeitgenau":
-            quelle, dauer = await quelle_messen(teile, kw, haupt_id, ordner)
+            quelle, dauer = await quelle_messen(teile, kw, haupt_id, ordner, ton)
             plan.quelle_dauer_s = plan.quelle_dauer_s or dauer
         format, endung = ziel_format(plan.art, plan.ziel.format, einst.mp3_bitrate, quelle)
         ziel = ordner / f"ergebnis{endung}"
@@ -123,7 +126,7 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
             async def fortschritt(anteil: float, text: str) -> None:
                 await k.fortschritt(von + (bis - von) * anteil, text, phase="sprechen")
 
-            g, gelegt = await teile.werk().ausfuehren(p, stimme=teile.gewaehlt, speicher=teile.speicher(plan_id), ziel=ziel,
+            g, gelegt = await teile.werk(geduld).ausfuehren(p, stimme=teile.gewaehlt, speicher=teile.speicher(plan_id), ziel=ziel,
                                                       format=format, fortschritt=fortschritt, pruefen=k.pruefen,
                                                       komfort=einst.komfort, hoechstens=einst.hoechstens)
             schluessel = {r.kennung: await teile.tempo_schluessel(r, p.sprache) for r in p.rollen}
@@ -135,7 +138,7 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
         lang = zu_lang(gelaufen, set(k.zwischenstand.get("uebersetzt", [])), einst.hoechstens) if ls else []
         if lang:
             await k.fortschritt(0.86, f"Knapper fassen: {len(lang)} Abschnitte passen nicht in ihre Zeit", phase="sprechen")
-            knapper = await knapper_fassen(ls, lang, gelaufen.ausgangssprache or "en", gelaufen.sprache,
+            knapper = await knapper_fassen(GeduldigeLeitstelle(ls, geduld), lang, gelaufen.ausgangssprache or "en", gelaufen.sprache,
                                            titel=f"Vertonung: {gelaufen.name} knapper fassen",
                                            modell=einst.uebersetzen_modell or None)
             for a in gelaufen.abschnitte:
@@ -145,8 +148,8 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
                 gelaufen, gelegt = await sprechen(gelaufen, 0.88, 0.91)
         if einst.aussprache_pruefen and ls:
             await k.fortschritt(0.91, "Aussprache prüfen", phase="sprechen")
-            await aussprache.pruefen(gelaufen, ziel, gelegt.datei.dauer_s, ordner / "aussprache", teile.ton,
-                                     teile.hoeren_woerter)
+            await aussprache.pruefen(gelaufen, ziel, gelegt.datei.dauer_s, ordner / "aussprache", ton,
+                                     lambda d, s: geduld(lambda: teile.hoeren_woerter(d, s), "Hören"))
         await k.fortschritt(0.92, "Ablegen", phase="ablegen")
         erg = await plaene.ergebnis_ablegen(haupt_id, ziel)
         dauer_s = round(gelegt.datei.dauer_s, 2)

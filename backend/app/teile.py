@@ -8,6 +8,7 @@ import logging
 import shutil
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from appkern.anmeldung import Konto
@@ -27,6 +28,9 @@ from .sprechen import Gewaehlt, Katalogstimme, KeineLeitstelle, Klonstimme, Spre
 from .tempo import Sprechtempo
 from .verzeichnis import Verzeichnis
 from .werk.werk import Werk
+
+if TYPE_CHECKING:
+    from .geduld import Geduld
 
 
 class KeinRechtAufStimme(Exception):
@@ -95,9 +99,13 @@ class Teile(Begleiter):
     def einstellungen(self) -> AppEinstellungen:
         return self.geruest.einstellungen.stand
 
-    def werk(self) -> Werk:
-        """Ein Werk mit den aktuellen Einstellungen (Ersatzstimme, Klonweg für fremde Sprachen)."""
-        return Werk(self.ton, self.dienst, ersatzstimme=lambda: self.einstellungen.ersatzstimme,
+    def werk(self, geduld: "Geduld | None" = None) -> Werk:
+        """Ein Werk mit den aktuellen Einstellungen (Ersatzstimme, Klonweg für fremde Sprachen); in einem Auftrag mit
+        `geduld` (Tondienst und Sprechen warten, solange die Leitstelle gerade nicht kann)."""
+        from .geduld import GeduldigesSprechen
+        ton = geduld.ton(self.ton) if geduld else self.ton
+        dienst = GeduldigesSprechen(self.dienst, geduld) if geduld else self.dienst
+        return Werk(ton, dienst, ersatzstimme=lambda: self.einstellungen.ersatzstimme,
                     sprachfremd=lambda: self.einstellungen.klonen_sprachfremd)
 
     @property

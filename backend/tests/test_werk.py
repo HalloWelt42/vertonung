@@ -100,3 +100,45 @@ async def test_zeitgenau_wie_quelle(tmp_path):
     assert (e.rate, e.kanaele, e.kodierung) == (48000, 2, "pcm_s16le") and e.dauer_s == pytest.approx(12.0, abs=0.02)
     wege = [a.bericht.weg for a in neu.abschnitte]
     assert wege[0] == "frei" and wege[1] in ("gestaucht", "luecke") and neu.abschnitte[1].bericht.stauchung >= 1.0
+
+
+async def test_kurz_weg_bricht_nichts_ab(tmp_path, monkeypatch):
+    """Sprechdienst und Tondienst kurz weg (Neustart der Leitstelle oder des Maschinenraums): der Auftrag wartet, meldet
+    es und spricht weiter, statt zu scheitern."""
+    import asyncio as aio
+
+    from appkern.leitstelle import DienstWeg
+
+    from app.geduld import Geduld, GeduldigesSprechen
+
+    async def sofort(_):
+        return None
+    monkeypatch.setattr(aio, "sleep", sofort)
+
+    class Holprig(Schein):
+        weg = 1
+
+        async def sprechen(self, *a, **kw):
+            if self.weg:
+                self.weg -= 1
+                raise DienstWeg("Stimmklon noch nicht gemeldet", nochmal_in=1)
+            return await super().sprechen(*a, **kw)
+
+    class HolprigerTon(TonHier):
+        weg = 1
+
+        async def legen(self, *a, **kw):
+            if self.weg:
+                self.weg -= 1
+                raise DienstWeg("Tondienst startet", nochmal_in=1)
+            return await super().legen(*a, **kw)
+
+    meldungen = []
+
+    async def melden(text):
+        meldungen.append(text)
+    geduld = Geduld(melden=melden)
+    werk = Werk(geduld.ton(HolprigerTon()), GeduldigesSprechen(Holprig(), geduld), ersatzstimme=lambda: "aiden")
+    neu, ziel = await ausfuehren(werk, aus_text("Kurz", "Ein Satz.", SERENA), tmp_path)
+    assert ziel.is_file() and neu.abschnitte[0].bericht.versuche == 1
+    assert [m.split(":")[0] for m in meldungen] == ["Sprechen", "Tondienst"]
