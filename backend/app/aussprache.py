@@ -15,6 +15,7 @@ from pathlib import Path
 from appkern.ton import Ton, Tonformat
 
 from .modell.plan import Plan
+from .sprechfassung import sprechbar
 from .werk.werk import RATE, abschnitt_datei
 
 HOEREN = Tonformat(rate=16000, kanaele=1, kodierung="pcm_s16le")    # was der Hördienst ohnehin rechnet
@@ -64,7 +65,9 @@ async def pruefen(vorher: Plan, gelaufen: Plan, speicher: Path, arbeit: Path, to
                 continue
             datei = arbeit / f"hoeren-{a.nr:05d}.wav"
             await ton.schreiben(await ton.lesen(quelle, RATE), RATE, datei, HOEREN)
-            abgleich = abgleichen(a.text, await hoeren(datei, gelaufen.sprache))
+            # verglichen wird mit dem Gesprochenen; gehörte Ziffern werden nach denselben Regeln ausgeschrieben
+            gehoert = sprechbar(await hoeren(datei, gelaufen.sprache), gelaufen.sprache)
+            abgleich = abgleichen(a.gesprochen(gelaufen.sprache), gehoert)
             a.bericht = a.bericht.model_copy(update={"aussprache": abgleich.quote, "abweichungen": abgleich.abweichungen})
             geprueft += 1
     finally:

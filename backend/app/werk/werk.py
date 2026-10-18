@@ -101,7 +101,7 @@ class Werk:
                 await fortschritt(i / gesamt, f"Abschnitt {a.nr} von {gesamt}")
                 if rolle.stimme.schluessel not in gewaehlt:
                     gewaehlt[rolle.stimme.schluessel] = await stimme(rolle.stimme)
-                g = await self.abschnitt_sprechen(a.text, gewaehlt[rolle.stimme.schluessel], plan.sprache, rolle.tempo,
+                g = await self.abschnitt_sprechen(a.gesprochen(plan.sprache), gewaehlt[rolle.stimme.schluessel], plan.sprache, rolle.tempo,
                                                   titel=f"{plan.name}, Abschnitt {a.nr}")
                 await self.ton.schreiben(g.werte, RATE, datei, ARBEIT)
                 for alt in speicher.glob(f"{a.nr:05d}-*.wav"):

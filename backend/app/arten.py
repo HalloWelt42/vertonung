@@ -64,7 +64,7 @@ def frisch_gesprochen(vorher: Plan, gelaufen: Plan) -> list[Probe]:
     for a in gelaufen.abschnitte:
         if a.dauer_s and a.gesprochen_als and a.gesprochen_als != alt.get(a.nr):
             rolle = gelaufen.rolle(a.rolle)
-            aus.append(Probe(rolle.stimme.schluessel, gelaufen.sprache, len(a.text), a.dauer_s * rolle.tempo))
+            aus.append(Probe(rolle.stimme.schluessel, gelaufen.sprache, len(a.gesprochen(gelaufen.sprache)), a.dauer_s * rolle.tempo))
     return aus
 
 

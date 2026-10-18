@@ -80,8 +80,13 @@ class Abschnitt(BaseModel):
     dauer_s: float | None = None           # Länge des Gesprochenen (vor dem Stauchen)
     bericht: Bericht | None = None
 
+    def gesprochen(self, sprache: str) -> str:
+        """Was tatsächlich gesprochen wird: die Sprechfassung des Textes (Zahlen, Zeiten, Werte ausgeschrieben)."""
+        from ..sprechfassung import sprechbar        # spät: die Regeln brauchen das Modell nicht
+        return sprechbar(self.text, sprache)
+
     def soll(self, rolle: Rolle, sprache: str) -> str:
-        roh = "\x1f".join([self.text.strip(), rolle.stimme.schluessel, f"{rolle.tempo:.3f}", sprache])
+        roh = "\x1f".join([self.gesprochen(sprache).strip(), rolle.stimme.schluessel, f"{rolle.tempo:.3f}", sprache])
         return hashlib.sha256(roh.encode("utf-8")).hexdigest()[:20]
 
     def uebersetzung_noetig(self, sprache: str) -> bool:
