@@ -51,6 +51,19 @@ Sprachen werden deutsch vertont.
 | 1 | 0.5.3 | 9:15 (3,5-fach) | 156,5 s | 0 | 1,00 / 1,02 | (noch nicht gemessen) |
 | 2 | 0.6.0 | 6:42 (2,6-fach) | 156,5 s | 0 | 1,13 / 1,24 | 3,0 % / 5,3 % |
 
+K2 (How to burn $30m on a JavaScript framework, 5:08, Zeit-Stimme, 0.7.2 mit Sprechfassung):
+
+| Lauf | Textquelle | Dauer | Länge (Quelle 307,7 s) | Versatz max (Abschnitte) | Stauchung Mittel/max | Aussprache Mittel/max |
+|---|---|---|---|---|---|---|
+| K2a | Untertitel der Quelle (automatisch) | 12:10 (2,4-fach) | 307,7 s | 1,1 s (9 von 21) | 1,05 / 1,50 | 0,9 % / 9,1 % |
+| K2b | eigene Transkription | 10:07 (2,0-fach), mit Transkription | 307,7 s | 0 (0 von 16) | 1,00 / 1,00 | 1,2 % / 7,5 % |
+
+Befund K2a: Die automatischen Untertitel überlappen in der Zeit (ein Fenster beginnt, bevor das vorige endet) und haben
+verfälschte Satzzeichen und Hörfehler ("Gangdom Style"); daher die vielen kleinen Verschiebungen. Die Sprechfassung
+greift (2012, 30 Millionen Dollar, 65 %, 20 $).
+
+Ergebnis K2: Die eigene Transkription ist trotz des Hörens schneller und legt sauber in die Zeit (kein Versatz, kein Stauchen), die Aussprache ist gleichauf. Automatische Untertitel der Quelle nicht verwenden; Empfehlung für TubeVault: Vorgabe der Untertitel auf "nur vom Autor" (Einstellung des Nutzers). Für Originalstimmen (Strecke 2 und 3) ist die eigene Transkription ohnehin nötig (Wortzeiten, Sprecher).
+
 Befund Runde 2: Mit gemessenem Tempo wird weniger gestrafft und etwas mehr gestaucht (über "unauffällig" 1,15 in drei von sieben Abschnitten). Die meisten Abweichungen beim Zurückhören sind nur Schreibweisen (getrennt oder zusammen); sie zählen ab 0.7 nicht mehr. Echte Fälle: englische Namen und Begriffe werden deutsch gelesen (Citus wird Zitus, Control wird Kontroll, hstore wird h store). Nächste Runde: Sprechfassung mit Regeln (0.7) und dann der Umgang mit englischen Namen.
 
 Befund Runde 1: Die Zeit-Stimme spricht rund 17 Zeichen je Sekunde (Katalogstimme serena 11,6); gerechnet wurde noch mit der Vorgabe 11,5, die Übersetzung wurde also stärker gestrafft als nötig. Das Tempo ist jetzt gemessen. Sprechen kostet am meisten (40 bis 60 s je Abschnitt von 12 bis 39 s).
