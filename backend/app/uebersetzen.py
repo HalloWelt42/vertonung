@@ -132,9 +132,10 @@ def knapper_text(fassungen: list[Fassung]) -> str:
                                  "uebersetzung": f.text}, ensure_ascii=False) for f in fassungen)
 
 
-async def _antworten(ls: Leitstelle, system: str, nutzer: str, titel: str, gesucht: set[int]) -> dict[int, str]:
+async def _antworten(ls: Leitstelle, system: str, nutzer: str, titel: str, gesucht: set[int],
+                     modell: str | None = None) -> dict[int, str]:
     """Eine Anfrage mit festem Antwortschema; liefert die Texte der gesuchten Nummern, die gekommen sind."""
-    antwort = await ls.chat([Nachricht.system(system), Nachricht.nutzer(nutzer)], titel=titel, response_format=SCHEMA,
+    antwort = await ls.chat([Nachricht.system(system), Nachricht.nutzer(nutzer)], titel=titel, modell=modell, response_format=SCHEMA,
                             temperature=0.2)
     try:
         daten = json.loads(antwort.text)
@@ -148,7 +149,8 @@ async def _antworten(ls: Leitstelle, system: str, nutzer: str, titel: str, gesuc
     return aus
 
 
-async def knapper_fassen(ls: Leitstelle, fassungen: list[Fassung], von: str, nach: str, titel: str) -> dict[int, str]:
+async def knapper_fassen(ls: Leitstelle, fassungen: list[Fassung], von: str, nach: str, titel: str,
+                         modell: str | None = None) -> dict[int, str]:
     """Zu lange Abschnitte knapper erbitten (höchstens KNAPPER_RUNDEN Runden); geliefert wird je Abschnitt die kürzeste
     Fassung, die kürzer ist als die bisherige. Was nicht kürzer wird, fehlt im Ergebnis (dann bleibt der alte Text)."""
     beste: dict[int, str] = {}
@@ -156,7 +158,7 @@ async def knapper_fassen(ls: Leitstelle, fassungen: list[Fassung], von: str, nac
     for _ in range(KNAPPER_RUNDEN):
         if not offen:
             break
-        neu = await _antworten(ls, knapper_anweisung(von, nach), knapper_text(list(offen.values())), titel, set(offen))
+        neu = await _antworten(ls, knapper_anweisung(von, nach), knapper_text(list(offen.values())), titel, set(offen), modell)
         for nr, text in neu.items():
             f = offen[nr]
             if len(text) < len(beste.get(nr, f.text)):
@@ -169,13 +171,14 @@ async def knapper_fassen(ls: Leitstelle, fassungen: list[Fassung], von: str, nac
 
 
 async def fenster_uebersetzen(ls: Leitstelle, stuecke: list[Stueck], davor: list[tuple[str, str]], von: str, nach: str,
-                              titel: str) -> dict[int, str]:
+                              titel: str, modell: str | None = None) -> dict[int, str]:
+    """Ein Fenster übersetzen; `modell` nur für Messungen (sonst die Kette der App in der Leitstelle)."""
     offen = {s.nr: s for s in stuecke}
     fertig: dict[int, str] = {}
     for _ in range(VERSUCHE):
         if not offen:
             break
-        neu = await _antworten(ls, anweisung(von, nach), anfrage_text(list(offen.values()), davor), titel, set(offen))
+        neu = await _antworten(ls, anweisung(von, nach), anfrage_text(list(offen.values()), davor), titel, set(offen), modell)
         for nr, text in neu.items():
             fertig[nr] = text
             del offen[nr]
@@ -184,7 +187,7 @@ async def fenster_uebersetzen(ls: Leitstelle, stuecke: list[Stueck], davor: list
     zu_lang = [Fassung(s.nr, s.original, fertig[s.nr], s.budget.grenze) for s in stuecke
                if s.budget and len(fertig[s.nr]) > s.budget.grenze * SPIELRAUM]
     if zu_lang:
-        fertig |= await knapper_fassen(ls, zu_lang, von, nach, titel)
+        fertig |= await knapper_fassen(ls, zu_lang, von, nach, titel, modell)
     return fertig
 
 
