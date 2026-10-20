@@ -33,7 +33,7 @@ from ..saetze import Satz, saetze
 from ..sprechen import Gewaehlt, mit_modus
 from ..sprechfassung import hat_worte, sprechbar
 from ..teile import Teile
-from ..werk.werk import GRENZE_PEGEL, RAND_MS, RATE, Werk
+from ..werk.werk import GRENZE_PEGEL, RAND_MS, RATE, Gesprochen, Werk
 
 PAUSE_S = 0.3
 WAV = Tonformat(rate=RATE, kanaele=1, kodierung="pcm_s16le")
@@ -58,7 +58,7 @@ class Sprechauftrag:
     def sprechtext(self, satz: Satz) -> str:
         return sprechbar(satz.text, self.sprache) if self.ausschreiben else satz.text
 
-    async def sprechen(self, text: str, ziel: Path, titel: str):
+    async def sprechen(self, text: str, ziel: Path, titel: str) -> Gesprochen:
         return await self.werk.abschnitt_sprechen(text, self.stimme, self.sprache, self.tempo, ziel, titel=titel)
 
 

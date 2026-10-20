@@ -52,6 +52,13 @@ async def test_ganzer_weg(tmp_path: Path):
                 katalog = (await c.get("/api/v1/stimmen?bereich=katalog", headers=h)).json()
                 assert [s["name"] for s in katalog] == ["serena", "aiden"]
 
+                # Sprechen als Strom, angemeldet über die echte Kellerwolke
+                r = await c.post("/api/v1/sprechen/strom", headers=h, json={"text": "Am 3. September um 14:30 Uhr. Gruß."})
+                assert r.status_code == 200 and r.headers["content-type"].startswith("application/x-ndjson"), r.text
+                zeilen = [json.loads(z) for z in r.text.splitlines() if z.strip()]
+                assert [z["art"] for z in zeilen] == ["satz", "satz", "ende"]
+                assert zeilen[0]["gesprochen"] == "Am dritten September um vierzehn Uhr dreißig."
+
                 # Stimme aus einer hochgeladenen Probe (6,5 s: bleibt ganz, der angegebene Text gilt)
                 r = await c.post("/api/v1/stimmen?name=Probestimme Test&bereich=fremd&referenztext=Hallo", headers=h,
                                  content=ton(6.5, 180.0))
