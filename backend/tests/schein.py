@@ -51,6 +51,7 @@ class ScheinLeitstelle:
         self.dateien: dict[str, bytes] = {}
         self.uebersetzt = 0
         self.gehoert = 0
+        self.scheitern_bei: str | None = None          # ein Text, der dieses Wort enthält, scheitert beim Sprechen
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         if request.url.path == "/v1/chat/completions":          # Sprachmodell: übersetzt mit "DE: " davor
@@ -75,6 +76,8 @@ class ScheinLeitstelle:
                 text = re.search(r'name="text"\r\n\r\n(.*?)\r\n--', inhalt, re.S).group(1).encode("latin-1").decode("utf-8")
                 stimme = "klon"
             self.aufrufe.append((stimme, text))
+            if self.scheitern_bei and self.scheitern_bei in text:
+                return httpx.Response(422, json={"detail": "Sprechdienst lehnt ab"})
             name = f"t{len(self.dateien)}.wav"
             self.dateien[name] = ton(max(0.4, len(text) / 15))
             return httpx.Response(200, json={"filename": name, "sample_rate": 24000})
@@ -95,11 +98,13 @@ class ScheinLeitstelle:
 
 
 class Weiche(httpx.AsyncBaseTransport):
-    """Leitstelle zum Schein mit echtem Tondienst (rechnet im Test, wie im Betrieb auf dem Mac), alles andere echt."""
+    """Leitstelle zum Schein mit echtem Tondienst (rechnet im Test, wie im Betrieb auf dem Mac), alles andere echt oder
+    über `andere` (etwa eine nachgestellte Kellerwolke)."""
 
-    def __init__(self, schein: ScheinLeitstelle, ablage: Path | None = None) -> None:
+    def __init__(self, schein: ScheinLeitstelle, ablage: Path | None = None,
+                 andere: httpx.AsyncBaseTransport | None = None) -> None:
         self.schein = httpx.MockTransport(schein)
-        self.echt = httpx.AsyncHTTPTransport()
+        self.echt = andere or httpx.AsyncHTTPTransport()
         self.ton = Tondienst(ablage or Path(tempfile.mkdtemp(prefix="tondienst-")))
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:

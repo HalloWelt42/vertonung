@@ -133,7 +133,8 @@ Abschnitten.
 | `POST /stimmen?name=&bereich=` | Referenz hochladen (Körper ist der Ton); ohne Referenztext hört die Transkription ihn heraus |
 | `GET /inhalt/stimmen/{id}/probe` | Referenz zum Anhören |
 | `POST /stimmen/gewinnen`, `POST /stimmen/gewinnen/{auftrag}/uebernehmen` | Kandidaten aus einer Aufnahme suchen; einen als Stimme anlegen |
-| `POST /sprechen` | `{text, stimme, sprache, tempo}` liefert sofort den Ton (WAV, 24 kHz mono) mit Dauer im Kopf; mit `?strom=1` satzweise, damit Vorlesen beim ersten Satz beginnt. Für kurze Texte der Kunden; längere gehen über einen Plan |
+| `POST /sprechen` | `{text, stimme, sprache, tempo, ausschreiben}` (bis 2000 Zeichen) liefert sofort den Ton (WAV, 24 kHz mono) mit Dauer im Kopf `X-Dauer`. Für kurze Texte der Kunden; längere gehen über einen Plan |
+| `POST /sprechen/strom` | dieselbe Eingabe bis 8000 Zeichen; Antwort `application/x-ndjson`, je Zeile eine `StromZeile` (Schema der App): `satz` (`nr`, `text` wie im Eingabetext, `gesprochen`, `von_zeichen`, `bis_zeichen`, `dauer_ms`, `ton` als Base64 einer WAV 16 Bit 24 kHz mono) sobald der Satz gesprochen ist, am Ende `ende` (`saetze`, `dauer_ms`), bei einem Fehler mitten im Strom `fehler` (`meldung`) und Schluss. Bricht der Kunde ab, geht kein weiterer Satz an den Sprechdienst |
 | `GET /plaene?suche=&art=`, `POST /plaene` | Verzeichnis; Plan anlegen aus Text, Dialog, Transkript oder Untertiteln |
 | `GET /plaene/{id}`, `PATCH /plaene/{id}` | Plan lesen und ändern; nur mit dem zuletzt gelesenen Stand (sonst 409) |
 | `POST /plaene/{id}/vertonen` | Auftrag; spricht nur Abschnitte, deren Prüfsumme sich geändert hat |

@@ -1,11 +1,14 @@
-"""Text in Sätze teilen (für Abschnitte) und lange Sätze in Stücke für einen Aufruf des Sprechdienstes (höchstens
-`GRENZE` Zeichen, an Teilsatz-, dann Wortgrenzen, zuletzt hart). Abkürzungen und Ordnungszahlen ("12. September")
-beenden keinen Satz. Typografische Zeichen stehen hier über ihre Nummer."""
+"""Text in Sätze teilen (für Abschnitte und den Strom) und lange Sätze in Stücke für einen Aufruf des Sprechdienstes
+(höchstens `GRENZE` Zeichen, an Teilsatz-, dann Wortgrenzen, zuletzt hart). Abkürzungen und Ordnungszahlen
+("12. September", "im 3. Stock") beenden keinen Satz. Jeder Satz kennt seine Lage im Eingabetext (zum Mitlesen).
+Typografische Zeichen stehen hier über ihre Nummer."""
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+
+from .sprechfassung import ARTIKEL
 
 GRENZE = 180
 ELLIPSE = chr(0x2026)
@@ -23,8 +26,10 @@ _TEILSATZ = re.compile(r"(?<=[,;:])\s+|(?<=\s-)\s+")   # nach Komma, Semikolon, 
 
 @dataclass(frozen=True)
 class Satz:
-    text: str
+    text: str              # Leerraum zusammengefasst
     absatz_ende: bool      # nach ihm endet ein Absatz (längere Pause)
+    von: int = 0           # Lage im Eingabetext: eingabe[von:bis] ist der Satz mit seinem ursprünglichen Leerraum
+    bis: int = 0
 
 
 def _endet_satz(vorher: str, zeichen: str, danach: str) -> bool:
@@ -39,28 +44,66 @@ def _endet_satz(vorher: str, zeichen: str, danach: str) -> bool:
     naechstes = re.match(r"[\wÄÖÜäöüß]+", danach)
     if w.isdigit() and naechstes and (naechstes.group(0).lower() in MONATE or naechstes.group(0)[0].islower()):
         return False                          # Ordnungszahl: "12. September", "3. bis 5."
+    davor = re.search(r"(\w+)\s+\d+$", vorher)
+    if w.isdigit() and naechstes and davor and davor.group(1).lower() in ARTIKEL:
+        return False                          # Ordnungszahl nach Artikel: "im 3. Stock"
     if naechstes and naechstes.group(0)[0].islower():
         return False                          # klein weiter: eher Abkürzung als Satzende
     return True
 
 
+def _verdichtet(text: str, versatz: int) -> tuple[str, list[int]]:
+    """Leerraum zu je einem Leerzeichen, vorn und hinten weg; dazu für jedes Zeichen seine Lage im Eingabetext."""
+    aus: list[str] = []
+    lage: list[int] = []
+    for i, z in enumerate(text):
+        if z.isspace():
+            if aus and aus[-1] != " ":
+                aus.append(" ")
+                lage.append(versatz + i)
+            continue
+        aus.append(z)
+        lage.append(versatz + i)
+    if aus and aus[-1] == " ":
+        aus.pop()
+        lage.pop()
+    return "".join(aus), lage
+
+
+def _absaetze(text: str):
+    """(Absatz, Lage seines Anfangs) für jeden Absatz; Absätze trennt eine Leerzeile."""
+    anfang = 0
+    for trenner in re.finditer(r"\n\s*\n", text):
+        yield text[anfang:trenner.start()], anfang
+        anfang = trenner.end()
+    yield text[anfang:], anfang
+
+
 def saetze(text: str) -> list[Satz]:
     aus: list[Satz] = []
-    for absatz in re.split(r"\n\s*\n", text.replace("\r\n", "\n")):
-        absatz = re.sub(r"\s+", " ", absatz).strip()
+    for roh, versatz in _absaetze(text):
+        absatz, lage = _verdichtet(roh, versatz)
         if not absatz:
             continue
-        teile: list[str] = []
+        spannen: list[tuple[int, int]] = []
         anfang = 0
         for m in _ENDE.finditer(absatz):
             if _endet_satz(absatz[anfang:m.start()], m.group(1)[-1], absatz[m.end():]):
-                teile.append(absatz[anfang:m.end(2)].strip())
+                spannen.append((anfang, m.end(2)))
                 anfang = m.end()
-        if absatz[anfang:].strip():
-            teile.append(absatz[anfang:].strip())
-        for i, t in enumerate(teile):
-            aus.append(Satz(text=t, absatz_ende=i == len(teile) - 1))
+        spannen.append((anfang, len(absatz)))
+        teile = [(a, b) for a, b in (_ohne_rand(absatz, a, b) for a, b in spannen) if b > a]
+        for i, (a, b) in enumerate(teile):
+            aus.append(Satz(text=absatz[a:b], absatz_ende=i == len(teile) - 1, von=lage[a], bis=lage[b - 1] + 1))
     return aus
+
+
+def _ohne_rand(text: str, a: int, b: int) -> tuple[int, int]:
+    while a < b and text[a].isspace():
+        a += 1
+    while b > a and text[b - 1].isspace():
+        b -= 1
+    return a, b
 
 
 def _woerter(text: str, grenze: int) -> list[str]:

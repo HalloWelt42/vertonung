@@ -47,7 +47,9 @@ gleicher Appkern in Oberfläche und Backend, Fassungen, HTTP/2, deckende Symbole
 | `backend/app/main.py` | baut die App auf dem Gerüst |
 | `backend/app/einstellungen.py` | eigene Einstellungen (dazu kommen Kellerwolke, Leitstelle, Konten) |
 | `backend/app/arten.py` | Arten von Aufträgen |
-| `backend/app/api.py` | eigene Endpunkte |
+| `backend/app/api/` | eigene Endpunkte; `sprechen.py` mit `/sprechen` und dem Strom `/sprechen/strom` (Vertrag in `modell/sprechen.py`) |
+| `backend/app/saetze.py` | Text in Sätze (mit Lage im Eingabetext) und Stücke für den Sprechdienst |
+| `backend/app/sprechfassung.py` | die eine Stelle, die Zahlen, Geld, Einheiten, Datum, Uhrzeit, Ordnungszahlen und Abkürzungen fürs Sprechen ausschreibt (Pläne, `/sprechen`, Strom, Ausspracheprüfung) |
 | `frontend/src/App.svelte` | Bereiche der App in der gemeinsamen Schale |
 | `frontend/src/seiten/` | Seiten der Bereiche |
 
