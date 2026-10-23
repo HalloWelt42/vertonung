@@ -47,9 +47,17 @@ async def test_einrichten_anmelden_verzeichnis(app):
         assert r.status_code == 503 and "Leitstelle" in r.json()["detail"]
 
 
-async def test_private_stimmen_nur_erlaubt(app):
+async def test_private_stimmen_nur_erlaubt(app, monkeypatch):
     teile = app.state.teile
-    assert teile.darf_privat(Konto(id="1", name="chef"))                          # Menschen immer
-    assert teile.darf_privat(Konto(id="1", name="chef", app="Rufzeichen"))       # auf der Liste
-    assert not teile.darf_privat(Konto(id="1", name="chef", app="Medienpool"))   # nie
-    assert not teile.darf_privat(Konto(id="1", name="chef", app="Fremdapp"))
+    zeit, freund = "7ce9880d-9f61-4220-ae2b-648076764afd", "06138119-9a96-4da9-b79c-d877cb900928"
+    medienpool = Konto(id="1", name="chef", app="Medienpool")
+    assert teile.darf_privat(Konto(id="1", name="chef"), freund)                  # Menschen immer
+    assert teile.darf_privat(Konto(id="1", name="chef", app="Rufzeichen"), freund)  # als Ganzes auf der Liste
+    assert teile.darf_privat(medienpool, zeit.upper())                            # nur die einzeln eingetragene
+    assert not teile.darf_privat(medienpool, freund)                              # Freundesstimmen nie
+    assert teile.private_freigabe(medienpool) == frozenset({zeit})
+    assert not teile.darf_privat(Konto(id="1", name="chef", app="Fremdapp"), zeit)
+    assert not teile.private_freigabe(Konto(id="1", name="chef", app="Fremdapp"))
+    # Ein pauschaler Eintrag gibt dem Medienpool trotzdem nicht alle
+    monkeypatch.setattr(teile.einstellungen, "private_stimmen_fuer", [*teile.einstellungen.private_stimmen_fuer, "medienpool"])
+    assert not teile.darf_privat(medienpool, freund) and teile.darf_privat(medienpool, zeit)

@@ -185,6 +185,9 @@ Aufnahmen privat; der Nutzer bestätigt je Stimme), schreibt die Angaben und ver
 1. Entwürfe am Rechner und am Telefon: so übernehmen.
 2. Private Stimmen nur für Apps auf einer Erlaubnisliste in den Einstellungen; Vorgabe Rufzeichen, Fundus, Bombel,
    Zusage und (18.10.2026) der Nachvertoner von TubeVault; Medienpool nie. Der Server erzwingt es.
+   Nachtrag 23.10.2026: Ein Eintrag `app:<Kennung der Stimme>` gibt einer App genau eine private Stimme frei. Der
+   Medienpool darf so die Zeit-Stimme nutzen und nur diese; Stimmen von Freunden bleiben für ihn gesperrt, auch ein
+   pauschaler Eintrag `medienpool` gibt ihm nicht alle.
 3. Ergebnis beim Vorlesen und bei Dialogen: MP3 mono, 24 kHz, 128 kbit/s; WAV, FLAC und OGG wählbar.
 4. Repository: öffentlich, wie Transkription und Appkern.
 5. Dienst für andere Apps (18.10.2026): der Sender bestimmt, ob Aufnahme, Plan und Ergebnis in der Kellerwolke bleiben

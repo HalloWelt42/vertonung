@@ -14,7 +14,7 @@ from appkern.anmeldung import Konto
 
 from ..ablage.stimmen import probe_aufbereiten
 from ..modell.stimme import Bereich, Herkunft, StimmAngaben, Stimme
-from ..teile import KeinRechtAufStimme, Teile
+from ..teile import ALLE, KeinRechtAufStimme, Teile
 
 
 def router(teile: Teile) -> APIRouter:
@@ -24,10 +24,13 @@ def router(teile: Teile) -> APIRouter:
     @r.get("/stimmen", response_model=list[Stimme])
     async def liste(bereich: Literal["privat", "fremd", "katalog"] = "fremd", suche: str = "",
                     konto: Konto = g.pflicht) -> list[Stimme]:
-        if bereich == "privat" and not teile.darf_privat(konto):
-            raise KeinRechtAufStimme("Private Stimmen sind dieser App nicht erlaubt")
         if bereich == "katalog":
             alle = [Stimme(id=f"katalog:{n}", name=n, bereich="katalog") for n in await teile.dienst.katalog()]
+        elif bereich == "privat":
+            freigabe = teile.private_freigabe(konto)
+            if not freigabe:
+                raise KeinRechtAufStimme("Private Stimmen sind dieser App nicht erlaubt")
+            alle = [x for x in await teile.stimmen.alle(bereich) if freigabe is ALLE or x.id.lower() in freigabe]
         else:
             alle = await teile.stimmen.alle(bereich)
         s = suche.strip().lower()
@@ -36,7 +39,7 @@ def router(teile: Teile) -> APIRouter:
     @r.get("/stimmen/{stimme_id}", response_model=Stimme)
     async def eine(stimme_id: UUID, konto: Konto = g.pflicht) -> Stimme:
         s = await teile.stimmen.lesen(stimme_id)
-        if s.bereich == "privat" and not teile.darf_privat(konto):
+        if s.bereich == "privat" and not teile.darf_privat(konto, s.id):
             raise KeinRechtAufStimme("Private Stimmen sind dieser App nicht erlaubt")
         return s
 

@@ -33,6 +33,18 @@ if TYPE_CHECKING:
     from .geduld import Geduld
 
 
+class _Alle:
+    """Freigabe aller privaten Stimmen (Menschen und Apps, die als Ganzes auf der Erlaubnisliste stehen)."""
+
+    def __repr__(self) -> str:
+        return "ALLE"
+
+
+ALLE = _Alle()
+PrivatFreigabe = _Alle | frozenset[str]
+"""ALLE oder die Kennungen der einzeln freigegebenen privaten Stimmen (leer: keine)."""
+
+
 class KeinRechtAufStimme(Exception):
     """Eine fremde App wollte eine private Stimme nutzen, ohne auf der Erlaubnisliste zu stehen."""
 
@@ -123,19 +135,29 @@ class Teile(Begleiter):
     def plaene_fuer(self, anfrage: UUID | None = None) -> Plaene:
         return self.plaene.fuer(self.zugang(anfrage)) if anfrage else self.plaene
 
-    def darf_privat(self, konto: Konto | None) -> bool:
-        """Menschen immer; fremde Apps nur auf der Erlaubnisliste (Medienpool nie)."""
+    def private_freigabe(self, konto: Konto | None) -> PrivatFreigabe:
+        """Welche privaten Stimmen der Aufrufer nutzen darf. Menschen alle; Apps nach der Erlaubnisliste: ein Eintrag
+        `app` gibt alle privaten Stimmen frei, `app:<Kennung der Stimme>` genau diese eine. Der Medienpool bekommt
+        nie alle (keine Stimmen von Freunden im Spiel), nur einzeln eingetragene."""
         if konto is None or konto.mensch:
-            return True
+            return ALLE
         app = (konto.app or "").strip().lower()
-        return app != "medienpool" and app in {a.strip().lower() for a in self.einstellungen.private_stimmen_fuer}
+        eintraege = {a.strip().lower() for a in self.einstellungen.private_stimmen_fuer}
+        if app in eintraege and app != "medienpool":
+            return ALLE
+        return frozenset(e.split(":", 1)[1] for e in eintraege if e.startswith(f"{app}:"))
+
+    def darf_privat(self, konto: Konto | None, stimme_id: UUID | str) -> bool:
+        """Ob der Aufrufer diese private Stimme nutzen darf."""
+        freigabe = self.private_freigabe(konto)
+        return freigabe is ALLE or str(stimme_id).lower() in freigabe
 
     async def stimme_pruefen(self, wahl: StimmWahl, konto: Konto | None) -> Stimme | None:
         """Die Klonstimme einer Wahl (None beim Katalog); private nur, wenn der Aufrufer sie nutzen darf."""
         if wahl.art == "katalog":
             return None
         s = await self.stimmen.lesen(wahl.knoten_id)
-        if s.bereich == "privat" and not self.darf_privat(konto):
+        if s.bereich == "privat" and not self.darf_privat(konto, s.id):
             raise KeinRechtAufStimme("Private Stimmen sind dieser App nicht erlaubt")
         return s
 

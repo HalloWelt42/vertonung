@@ -74,11 +74,13 @@ class AppEinstellungen(Grundeinstellungen):
     mp3_bitrate: Literal["96k", "128k", "160k"] = Field("128k", title="Bitrate MP3", json_schema_extra=ERGEBNIS,
                                                         description="Für Sprache in Mono genügen 128 kbit/s.")
 
-    private_stimmen_fuer: list[str] = Field(["rufzeichen", "fundus", "bombel", "zusage", "nachvertoner", "assistent"], title="Private Stimmen für",
+    private_stimmen_fuer: list[str] = Field(["rufzeichen", "fundus", "bombel", "zusage", "nachvertoner", "assistent",
+                                             "medienpool:7ce9880d-9f61-4220-ae2b-648076764afd"], title="Private Stimmen für",
                                             json_schema_extra=STIMMEN,
                                             description="Kennungen der Apps (Zugänge der Kellerwolke), die private Stimmen "
-                                                        "nutzen dürfen. Alle anderen bekommen nur fremde und Katalogstimmen; "
-                                                        "Medienpool nie.")
+                                                        "nutzen dürfen: 'app' für alle, 'app:<Kennung der Stimme>' für genau "
+                                                        "eine. Alle anderen bekommen nur fremde und Katalogstimmen; der "
+                                                        "Medienpool nur einzeln eingetragene (die Zeit-Stimme).")
     probe_min_s: float = Field(6.0, ge=3.0, le=15.0, title="Probe mindestens", json_schema_extra={**STIMMEN, "einheit": "s"},
                                description="Kürzere Stellen ergeben keine Klonstimme.")
 

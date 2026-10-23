@@ -22,7 +22,7 @@ def router(teile: Teile) -> APIRouter:
     @r.get("/stimmen/{stimme_id}/probe")
     async def probe(stimme_id: UUID, request: Request, konto: Konto = g.lesen) -> Response:
         s = await teile.stimmen.lesen(stimme_id)
-        if s.bereich == "privat" and not teile.darf_privat(konto):
+        if s.bereich == "privat" and not teile.darf_privat(konto, s.id):
             raise HTTPException(403, "Private Stimmen sind dieser App nicht erlaubt")
         kw = teile.zugang()
         return await inhalt_reichen(kw, await kw.knoten(stimme_id), request)
