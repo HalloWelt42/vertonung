@@ -17,4 +17,8 @@ fi
 }
 # <<< handbuch
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-exec backend/.venv/bin/python -m appkern.werkzeuge ausrollen "$@"
+# Rechner, Ordner, Adresse, Namen und Leitstelle aus der privaten Wahrheit (handbuch ziel)
+ergaenzung="$(mktemp)"
+trap 'rm -f "$ergaenzung"' EXIT
+"$handbuch_befehl" ziel "$(pwd)" --toml > "$ergaenzung" || { echo "Abbruch: kein Ziel in der privaten Wahrheit (handbuch ziel)" >&2; exit 1; }
+backend/.venv/bin/python -m appkern.werkzeuge ausrollen --ergaenzung "$ergaenzung" "$@"

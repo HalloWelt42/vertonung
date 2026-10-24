@@ -1,4 +1,4 @@
-# Vertonung auf dem Pi: https://192.168.178.49:8641. Vorne Caddy mit dem Zertifikat der Hausstelle (tools/ausrollen.sh
+# Vertonung auf dem Pi, Port 8641. Vorne Caddy mit dem Zertifikat der Hausstelle (tools/ausrollen.sh
 # stellt es aus), dahinter die App ohne TLS, nur im eigenen Netz erreichbar. Daten in ./daten.
 services:
   vertonung:
@@ -30,8 +30,6 @@ services:
     depends_on: [vertonung]
     ports:
       - "8641:8641"
-    environment:
-      HAUPTADRESSE: ${HAUPTADRESSE:-192.168.178.49}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./zertifikate:/zertifikate:ro

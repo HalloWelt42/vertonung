@@ -17,8 +17,8 @@ document.querySelectorAll("header.kopf[data-erzeugen]").forEach((kopf) => {
   kopf.innerHTML = `<div class="marke"><span class="symbol"><i class="fa-solid fa-volume-high"></i></span> Vertonung</div>
     <span class="rolle"><i class="fa-solid fa-wave-square"></i>macht aus Text Sprache</span>
     <div class="kopf-rechts">
-      <span class="pille" title="Leitstelle http://192.168.178.49:8530"><span class="punkt"></span>Leitstelle</span>
-      <span class="pille" title="Kellerwolke https://192.168.178.49:39280, Zweig Apps/Vertonung"><span class="punkt"></span>Kellerwolke</span>
+      <span class="pille" title="Leitstelle http://192.168.1.20:8530"><span class="punkt"></span>Leitstelle</span>
+      <span class="pille" title="Kellerwolke https://192.168.1.20:39280, Zweig Apps/Vertonung"><span class="punkt"></span>Kellerwolke</span>
       <span class="pille aktiv"><i class="fa-solid fa-gears"></i>1 läuft, 1 wartet</span>
       <button class="rund" title="Hilfe"><i class="fa-solid fa-circle-question"></i></button>
     </div>`;
