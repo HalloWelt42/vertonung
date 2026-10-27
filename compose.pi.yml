@@ -18,6 +18,8 @@ services:
       VERTONUNG_CA_DATEI: /zertifikate/rootCA.pem
     volumes:
       - ./daten:/app/daten
+      # Sicherungen der Datenbank nach der Regel des Appkerns: wöchentlich von der App, vor dem Neustart vom Ausrollen
+      - ./sicherungen:/app/sicherungen
       - ./zertifikate:/zertifikate:ro
       # Ortszeit des Pi (sonst UTC)
       - /etc/localtime:/etc/localtime:ro

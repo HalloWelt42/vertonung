@@ -6,14 +6,14 @@ daten:
   - "Pi: `{{wurzel}}/daten/vertonung.sqlite` (Pläne, Aufträge, Freigaben der Stimmen, Einstellungen); `abschnitte/` (Ton je Plan bis zum Zusammensetzen) und `referenzen/` (geholte Stimmproben, Zwischenspeicher)"
   - "Kellerwolke: Stimmen mit ihren Proben und die Ergebnisse, im Zweig `Apps/Vertonung` und neben den Quellen"
 sicherung:
-  - "jedes Ausrollen sichert `vertonung.sqlite` vor dem Neustart nach `{{wurzel}}/sicherungen` (die letzten zehn bleiben); das Werkzeug Sicherungen holt sie täglich nach `~/Sicherungen/vertonung/pi`"
+  - "nach der Regel des Appkerns eine Kopie von `vertonung.sqlite` nach `{{wurzel}}/sicherungen`, wöchentlich und vor dem Ausrollen (nur, wenn die jüngste älter als 24 Stunden ist), nie ohne Änderung, höchstens drei Stände (Einstellungen, Sicherung); das Werkzeug Sicherungen holt sie täglich nach `~/Sicherungen/vertonung/pi`"
   - "Stimmen und Ergebnisse liegen in der Kellerwolke und hängen an deren Sicherung"
 schluessel_orte:
   - "Pi: Einstellungen im Verzeichnis `vertonung.sqlite`: App-Schlüssel der Kellerwolke, Schlüssel der Leitstelle (in der Oberfläche unter Einstellungen, verdeckt)"
   - "Pi: `{{wurzel}}/.env`, Modus 0600, für Werte, die nicht ins Repo gehören"
   - "Pi: `{{wurzel}}/zertifikate/`, Blattzertifikat mit Schlüssel aus der Hausstelle (vom Ausrollen)"
 einrichten: einrichten.sh
-stand: 72d2fc1
+stand: a2078a6
 ---
 
 # Vertonung
@@ -62,7 +62,7 @@ Probe: `test -f frontend/dist/index.html && backend/.venv/bin/python -c "import 
 
 ### 2. Ordner auf dem Pi
 
-Auf dem Pi `mkdir -p {{wurzel}}/daten` (sonst legt Docker ihn für root an). Aus der Sicherung die jüngste Kopie als
+Auf dem Pi `mkdir -p {{wurzel}}/daten {{wurzel}}/sicherungen` (sonst legt Docker sie für root an). Aus der Sicherung die jüngste Kopie als
 `{{wurzel}}/daten/vertonung.sqlite` ablegen (Besitzer `pi`).
 
 Probe: `stat -c %U {{wurzel}}/daten` meldet `pi`.
@@ -93,11 +93,12 @@ einer Katalogstimme.
 
 ## Sicherung und Rückspielen
 
-Jedes Ausrollen legt vor dem Neustart eine stimmige Kopie von `vertonung.sqlite` nach
-`{{wurzel}}/sicherungen/vertonung-<Zeit>.sqlite`; die letzten zehn bleiben. Das Werkzeug Sicherungen am Mac holt sie
-täglich nach `~/Sicherungen/vertonung/pi` (Stand in `~/Sicherungen/LIESMICH.md`). Zwischen zwei Ausrollen entsteht
-keine Sicherung. `abschnitte/` und `referenzen/` sind Zwischenstände und brauchen keine Sicherung; Stimmen und
-Ergebnisse hängen an der Sicherung der Kellerwolke.
+Nach der Regel der Sicherung aus dem [[Appkern]] legt die App einmal je Woche, das Ausrollen vor dem Neustart (nur,
+wenn die jüngste älter als 24 Stunden ist) eine stimmige Kopie von `vertonung.sqlite` nach
+`{{wurzel}}/sicherungen/vertonung-<Zeit>.sqlite`; hat sich seit der jüngsten nichts geändert, entsteht keine, und
+höchstens drei bleiben (Werte unter Einstellungen, Sicherung). Das Werkzeug Sicherungen am Mac holt sie täglich nach
+`~/Sicherungen/vertonung/pi` (Stand in `~/Sicherungen/LIESMICH.md`). `abschnitte/` und `referenzen/` sind
+Zwischenstände und brauchen keine Sicherung; Stimmen und Ergebnisse hängen an der Sicherung der Kellerwolke.
 
 Zurückspielen: auf dem Pi im Ordner {{wurzel}} `docker compose -f compose.pi.yml stop vertonung`, die Kopie als
 `daten/vertonung.sqlite` ablegen (alte `-wal` und `-shm` daneben entfernen), `docker compose -f compose.pi.yml start
