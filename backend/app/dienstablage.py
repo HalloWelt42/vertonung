@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS dienst_ablage (
   auftrag_id TEXT PRIMARY KEY, haupt_id TEXT NOT NULL, app TEXT NOT NULL, behalten INTEGER NOT NULL,
   plan_id TEXT, frist_bis TEXT NOT NULL, erstellt_am TEXT NOT NULL
 );
+""", """
+ALTER TABLE dienst_ablage ADD COLUMN transkription_anfrage TEXT;
 """]
 FRIST = timedelta(hours=48)      # reicht für langes Warten auf die Transkription (bis 6 Stunden) und das Abholen
 
@@ -28,11 +30,13 @@ class Ablage:
     behalten: bool
     plan_id: UUID | None
     frist_bis: datetime
+    transkription_anfrage: str | None = None    # an die Transkription weitergegeben: ihr Transkript gehört dem Sender
 
 
 def _ablage(z: dict) -> Ablage:
     return Ablage(auftrag_id=z["auftrag_id"], haupt_id=UUID(z["haupt_id"]), app=z["app"], behalten=bool(z["behalten"]),
-                  plan_id=UUID(z["plan_id"]) if z["plan_id"] else None, frist_bis=datetime.fromisoformat(z["frist_bis"]))
+                  plan_id=UUID(z["plan_id"]) if z["plan_id"] else None, frist_bis=datetime.fromisoformat(z["frist_bis"]),
+                  transkription_anfrage=z["transkription_anfrage"])
 
 
 class DienstAblage:
@@ -50,6 +54,12 @@ class DienstAblage:
 
     async def plan_merken(self, auftrag_id: str, plan_id: UUID | str) -> None:
         await self.db.ausfuehren("UPDATE dienst_ablage SET plan_id = ? WHERE auftrag_id = ?", (str(plan_id), auftrag_id))
+
+    async def transkription_merken(self, auftrag_id: str, anfrage_id: UUID | str) -> None:
+        """Die Vertonung hat das Transkribieren weitergegeben; das Transkript bietet `texte` dem Sender an, sobald es
+        da ist."""
+        await self.db.ausfuehren("UPDATE dienst_ablage SET transkription_anfrage = ? WHERE auftrag_id = ?",
+                                 (str(anfrage_id), auftrag_id))
 
     async def eine(self, auftrag_id: str) -> Ablage | None:
         z = await self.db.zeile("SELECT * FROM dienst_ablage WHERE auftrag_id = ?", (auftrag_id,))

@@ -18,6 +18,9 @@ async def test_faellig_nur_nicht_behalten_nach_der_frist(tmp_path):
         await d.eintragen("a2", uuid4(), "Nachvertoner", behalten=True)
         plan = uuid4()
         await d.plan_merken("a1", plan)
+        assert (await d.eine("a1")).transkription_anfrage is None
+        await d.transkription_merken("a1", "anfrage-1")
+        assert (await d.eine("a1")).transkription_anfrage == "anfrage-1"
         assert await d.faellige() == []
         spaeter = datetime.now(UTC) + FRIST * 1.01
         assert [(a.auftrag_id, a.plan_id) for a in await d.faellige(spaeter)] == [("a1", plan)]

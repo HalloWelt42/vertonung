@@ -2,8 +2,9 @@
 Stimme und auf Wunsch schon mit Segmenten; sie liegt danach in der Kellerwolke unter `Dienst/<App>` im Zweig der
 Vertonung, Segmente als Transkript daneben. Ein Auftrag erledigt den Rest: fehlt der Text, gibt er das Transkribieren
 an die Transkription weiter und wartet auf ihr Transkript; dann Plan zeitgenau (mit Übersetzung, wenn die Sprachen
-abweichen), sprechen, Ergebnis neben die Aufnahme. Danach bietet `texte` dem Sender an, was dabei an Text entstand: das
-Transkript der Quelle (wenn die Vertonung es transkribieren ließ) und den Text der neuen Tonspur an seinen Zeiten."""
+abweichen), sprechen, Ergebnis neben die Aufnahme. `texte` bietet dem Sender an, was dabei an Text entsteht: das
+Transkript der Quelle, sobald es da ist (wenn die Vertonung es transkribieren ließ), und nach dem Ende den Text der
+neuen Tonspur an seinen Zeiten."""
 
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from appkern.auftraege import Kontext
+from appkern.auftraege import Auftrag, Kontext
 
 from . import originalstimmen, planen
 from .ablage import orte
@@ -103,6 +104,7 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
                 optionen["sprecher"] = "trennung"     # Originalstimmen brauchen Sprecher und Wortzeiten
             neu = await kw.weitergeben(teile.einstellungen.transkription_app, "transkribieren", haupt.id, optionen)
             await k.merken(weitergegeben=str(neu.anfrage.id), seit=time.time())
+            await teile.dienstablage.transkription_merken(k.auftrag_id, neu.anfrage.id)
         text = await transkript_abwarten(kw, haupt.id, k.zwischenstand["weitergegeben"],
                                          float(k.zwischenstand.get("seit", time.time())), k)
     plan_id = k.zwischenstand.get("plan_id")
@@ -137,8 +139,7 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
         await k.merken(plan_id=plan_id)
         await teile.dienstablage.plan_merken(k.auftrag_id, plan_id)
     ergebnis = await plan_ausfuehren(teile, k, UUID(plan_id), None)
-    return {**ergebnis, "plan_id": plan_id, "stimmen": k.zwischenstand.get("stimmen", {}),
-            "transkribiert": "weitergegeben" in k.zwischenstand}
+    return {**ergebnis, "plan_id": plan_id, "stimmen": k.zwischenstand.get("stimmen", {})}
 
 
 class TextSegment(BaseModel):
@@ -160,20 +161,23 @@ class Texte(BaseModel):
                                                             "gesprochen wird (bei gleicher Sprache der neu gesprochene)")
 
 
-async def texte(teile: Teile, a: Ablage, ergebnis: dict) -> Texte:
-    """Was ein fertiger Dienstauftrag an Text hat; zu holen vor `abgeholt` (danach liegt alles im Papierkorb)."""
+async def texte(teile: Teile, a: Ablage, auftrag: Auftrag) -> Texte:
+    """Was ein Dienstauftrag an Text hat, zu holen vor `abgeholt` (danach liegt alles im Papierkorb): das Transkript,
+    sobald die Transkription es neben die Aufnahme gelegt hat (auch wenn der Auftrag danach scheitert), den Text der
+    neuen Tonspur erst, wenn der Auftrag fertig ist (vorher stehen seine Zeiten nicht fest)."""
     kw = teile.zugang()
+    ergebnis = auftrag.ergebnis or {}
     transkript = None
-    if ergebnis.get("transkribiert"):
+    if a.transkription_anfrage is not None:
         b = next((x for x in await kw.begleiter(a.haupt_id) if x.rolle == "transkript"), None)
         if b is not None:
             t = json.loads((await kw.lesen_ganz(b.id)).decode("utf-8", "replace"))
             transkript = TextSpur(sprache=(t.get("sprache") if t.get("sprache") not in (None, "", "auto") else None)
-                                  or ergebnis.get("ausgangssprache") or "",
+                                  or ergebnis.get("ausgangssprache") or auftrag.eingabe.get("ausgangssprache") or "",
                                   segmente=[TextSegment(start=x.start, ende=x.ende, text=x.text.strip(), sprecher=x.sprecher)
                                             for x in planen.segmente_aus_transkript(t) if x.text.strip()])
     uebersetzung = None
-    if a.plan_id is not None:
+    if auftrag.zustand == "fertig" and a.plan_id is not None:
         plan, _ = await teile.plaene.lesen(a.plan_id)
         lage = {s.nr: s for s in spannen(plan)}
         uebersetzung = TextSpur(sprache=plan.sprache, segmente=[
