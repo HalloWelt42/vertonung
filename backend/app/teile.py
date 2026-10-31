@@ -77,8 +77,8 @@ class Teile(Begleiter):
         geruest.einstellungen.anbieten("dienst_ton", geruest.leitstelle_angebot("ton"))
         geruest.einstellungen.anbieten("stimme_vorgabe", self.katalog_angebot)
         geruest.einstellungen.anbieten("ersatzstimme", self.katalog_angebot)
-        geruest.einstellungen.anbieten_mit_sitzung("private_stimmen_fuer", self.freigabe_angebot)
-        geruest.einstellungen.anbieten_mit_sitzung("transkription_app", geruest.kellerwolke_apps_angebot())
+        geruest.einstellungen.anbieten("private_stimmen_fuer", self.freigabe_angebot)
+        geruest.einstellungen.anbieten("transkription_app", geruest.kellerwolke_apps_angebot())
         self.ton = TonDienst(lambda: geruest.leitstelle, lambda: e().dienst_ton)     # Tonarbeit nur auf dem Mac
         self._fristen: asyncio.Task | None = None
         self.dienst = Sprechdienst(lambda: geruest.leitstelle, lambda: (e().dienst_sprechen, e().dienst_klonen))
@@ -134,11 +134,11 @@ class Teile(Begleiter):
         return Angebot(optionen=optionen + [Option(wert=n, titel=n, hinweis="Katalog") for n in namen], eigener_wert=False,
                        stand=f"gefunden: {len(namen)} Stimmen im Katalog")
 
-    async def freigabe_angebot(self, sitzung: str) -> Angebot:
-        """Freigabe privater Stimmen als Paare: die Apps aus den Zugängen der Kellerwolke (Konto des Menschen, der die
-        Einstellungen ansieht) und die privaten Stimmen mit Namen. Gespeichert wird `app` oder `app:<Kennung>`, klein
+    async def freigabe_angebot(self) -> Angebot:
+        """Freigabe privater Stimmen als Paare: die Apps aus den Zugängen der Kellerwolke (desselben Kontos) und die
+        privaten Stimmen mit Namen. Gespeichert wird `app` oder `app:<Kennung>`, klein
         geschrieben wie bisher."""
-        apps, stand = await self.geruest.kellerwolke_apps(sitzung)
+        apps, stand = await self.geruest.kellerwolke_apps()
         optionen = [_freigabe_app(o) for o in apps]
         try:
             privat = await self.stimmen.alle("privat")

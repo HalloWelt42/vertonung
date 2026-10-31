@@ -113,7 +113,7 @@ vertonung`. Probe wie in Schritt 3.
 - Tonarbeit scheitert: kein Tondienst bei der Leitstelle (Klangwerk ton); das Ausrollen warnt schon davor.
 - Eine App bekommt eine private Stimme nicht: sie steht nicht auf der Erlaubnisliste unter Stimmen ("Private Stimmen
   für"); das ist Absicht. Dort die App und die Stimme wählen und speichern.
-- Unter "Private Stimmen für" fehlen die Apps: die Liste kommt mit der eigenen Anmeldung aus der Kellerwolke; ist die
-  Kellerwolke nicht erreichbar, sagt das der Hinweis darunter.
+- Unter "Private Stimmen für" fehlen die Apps: die Liste kommt aus der Kellerwolke (ab Fassung 0.88); ist sie nicht
+  erreichbar oder älter, sagt das der Hinweis darunter.
 - Das Ausrollen wartet lange: es wartet auf eine Lücke ohne laufenden Auftrag (bis vier Stunden); `--sofort` rollt
   trotzdem aus.

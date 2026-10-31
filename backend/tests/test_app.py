@@ -20,11 +20,9 @@ def kellerwolke(request: httpx.Request) -> httpx.Response:
         if json.loads(request.content)["passwort"] != "geheim":
             return httpx.Response(401, json={"detail": "Anmeldung fehlgeschlagen"})
         return httpx.Response(200, json={"token": "t1", "benutzer": {"id": "1", "name": "probe", "rolle": "mitglied", "aktiv": True}})
-    if pfad == "/api/v1/app-zugaenge":
-        if request.headers.get("x-kellerwolke-sitzung") != "t1":
-            return httpx.Response(401, json={"detail": "Anmeldung erforderlich"})
-        return httpx.Response(200, json=[{"id": "00000000-0000-0000-0000-00000000000%d" % i, "app": a, "aktiv": True}
-                                         for i, a in enumerate(["Vorlesen", "Medienpool", "Rufzeichen"])])
+    if pfad == "/api/v1/ablage/apps":
+        assert request.headers["authorization"] == "Bearer kw_app_x"
+        return httpx.Response(200, json=[{"app": a, "aktiv": True} for a in ["Vorlesen", "Medienpool", "Rufzeichen"]])
     if pfad == "/api/v1/auth/status":
         ok = request.headers.get("x-kellerwolke-sitzung") == "t1"
         return httpx.Response(200, json={"angemeldet": ok, "benutzer": {"id": "1", "name": "probe", "rolle": "mitglied", "aktiv": True} if ok else None})
