@@ -70,7 +70,7 @@ class ScheinLeitstelle:
         if rest in ("tts", "tts/clone"):
             if rest == "tts":
                 daten = json.loads(request.content)
-                text, stimme = daten["text"], daten["voice"]
+                text, stimme = daten["text"], daten.get("voice", "(Vorgabe)")     # ohne Stimme die Vorgabe des Dienstes
             else:
                 inhalt = request.content.decode("latin-1")
                 text = re.search(r'name="text"\r\n\r\n(.*?)\r\n--', inhalt, re.S).group(1).encode("latin-1").decode("utf-8")

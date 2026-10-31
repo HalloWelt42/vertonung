@@ -119,7 +119,7 @@ async def dienst_ausfuehren(teile: Teile, k: Kontext) -> dict:
             segmente = planen.segmente_aus_transkript(transkript)
             if ausgang is None and transkript.get("sprache") not in (None, "", "auto"):
                 ausgang = transkript["sprache"]
-        stimme = e.stimme or StimmWahl(art="katalog", name=teile.einstellungen.stimme_vorgabe)
+        stimme = e.stimme or StimmWahl.fest(teile.einstellungen.stimme_vorgabe)
         je_sprecher: dict[str, StimmWahl] = {}
         if e.stimmen == "original" and transkript is not None:
             zuordnung = await originalstimmen.zuordnen(teile, transkript, haupt, e.name, ausgang or "en", stimme,

@@ -72,7 +72,7 @@ def router(teile: Teile) -> APIRouter:
 
     async def vorbereiten(a: SprechenAnfrage, konto: Konto) -> Sprechauftrag:
         e = teile.einstellungen
-        wahl = a.stimme or StimmWahl(art="katalog", name=e.stimme_vorgabe)
+        wahl = a.stimme or StimmWahl.fest(e.stimme_vorgabe)
         await teile.stimme_pruefen(wahl, konto)
         sprache = a.sprache or e.sprache
         stimme = mit_modus(await teile.gewaehlt(wahl), "auto", sprache, e.klonen_sprachfremd)

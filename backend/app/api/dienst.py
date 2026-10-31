@@ -37,7 +37,8 @@ def router(teile: Teile) -> APIRouter:
     @r.post("/dienst/vertonen", response_model=Auftrag, status_code=201)
     async def vertonen(datei: UploadFile = File(...), name: str = Form(..., max_length=200),
                        sprache: str = Form("de"), ausgangssprache: str | None = Form(None),
-                       stimme: str | None = Form(None, description='JSON wie {"art": "katalog", "name": "serena"}'),
+                       stimme: str | None = Form(None, description='JSON wie {"art": "katalog", "name": "<Name aus dem Katalog>"} '
+                                                                      'oder {"art": "klon", "knoten_id": "..."}; ohne: Stimme ab Werk'),
                        segmente: str | None = Form(None, description="JSON-Liste mit start, ende, text, sprecher"),
                        format: Literal["wie_quelle", "m4a"] = Form("m4a"),
                        stimmen: Literal["fest", "original"] = Form("fest", description="original: je Sprecher seine Stimme "

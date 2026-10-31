@@ -23,19 +23,22 @@ Weg = Literal["frei", "luecke", "gestaucht", "geschoben"]
 class StimmWahl(BaseModel):
     art: Literal["klon", "katalog"]
     knoten_id: UUID | None = None          # Referenz der Klonstimme
-    name: str | None = None                # feste Stimme des Sprechdienstes
+    name: str | None = None                # feste Stimme des Sprechdienstes; ohne Namen seine Vorgabe
 
     @model_validator(mode="after")
     def _vollstaendig(self) -> StimmWahl:
         if self.art == "klon" and self.knoten_id is None:
             raise ValueError("Klonstimme ohne Referenz")
-        if self.art == "katalog" and not self.name:
-            raise ValueError("Katalogstimme ohne Namen")
         return self
+
+    @classmethod
+    def fest(cls, name: str) -> StimmWahl:
+        """Eine feste Stimme des Sprechdienstes; leer heißt seine Vorgabe."""
+        return cls(art="katalog", name=name.strip() or None)
 
     @property
     def schluessel(self) -> str:
-        return f"klon:{self.knoten_id}" if self.art == "klon" else f"katalog:{self.name}"
+        return f"klon:{self.knoten_id}" if self.art == "klon" else f"katalog:{self.name or ''}"
 
 
 class Rolle(BaseModel):

@@ -19,7 +19,7 @@ class KeineLeitstelle(Exception):
 
 @dataclass(frozen=True)
 class Katalogstimme:
-    name: str
+    name: str                 # leer: die Vorgabe des Sprechdienstes (es geht keine Stimme mit)
 
 
 @dataclass(frozen=True)
@@ -67,7 +67,8 @@ class Sprechdienst:
         async with dienst.gebunden():         # die Datei liegt bei der Instanz, die gesprochen hat
             if isinstance(stimme, Katalogstimme):
                 antwort = await dienst.json("POST", "/tts", titel=titel,
-                                            json={"text": text, "voice": stimme.name, "language": sprache_name, "speed": tempo})
+                                            json={"text": text, "language": sprache_name, "speed": tempo,
+                                                  **({"voice": stimme.name} if stimme.name else {})})
             else:
                 with open(stimme.referenz, "rb") as referenz:
                     antwort = await dienst.json("POST", "/tts/clone", titel=titel,

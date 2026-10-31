@@ -47,7 +47,7 @@ async def test_ganzer_weg(tmp_path: Path):
             try:
                 assert (await c.post("/api/v1/adresse", headers=h, json={"adresse": "http://t"})).status_code == 200
                 r = await c.patch("/api/v1/einstellungen", headers=h, json={"werte": {
-                    "leitstelle_adresse": ADRESSE, "leitstelle_schluessel": "ls_probe"}})
+                    "leitstelle_adresse": ADRESSE, "leitstelle_schluessel": "ls_probe", "stimme_vorgabe": "serena"}})
                 assert r.status_code == 200, r.text
                 katalog = (await c.get("/api/v1/stimmen?bereich=katalog", headers=h)).json()
                 assert [s["name"] for s in katalog] == ["serena", "aiden"]

@@ -114,7 +114,7 @@ def router(teile: Teile) -> APIRouter:
         e = teile.einstellungen
         kw = teile.zugang(a.anfrage_id)
         plaene = teile.plaene_fuer(a.anfrage_id)
-        vorgabe = a.stimme or StimmWahl(art="katalog", name=e.stimme_vorgabe)
+        vorgabe = a.stimme or StimmWahl.fest(e.stimme_vorgabe)
         for w in [vorgabe, *a.stimmen.values()]:
             await teile.stimme_pruefen(w, konto)
         sprache = a.sprache or e.sprache

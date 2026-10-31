@@ -17,7 +17,7 @@
 
   let name = $state("");
   let text = $state("");
-  let stimme = $state<StimmWahl>({ art: "katalog", name: "serena" });
+  let stimme = $state<StimmWahl>({ art: "katalog", name: null });      // Stimme ab Werk, leer die Vorgabe des Sprechdienstes
   let rollen = $state<Record<string, StimmWahl>>({});
   let format = $state<Format>("mp3");
   let sprache = $state("de");

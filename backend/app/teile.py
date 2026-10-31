@@ -13,15 +13,16 @@ from uuid import UUID
 
 from appkern.anmeldung import Konto
 from appkern.app import Begleiter, Geruest
-from appkern.kellerwolke import Kellerwolke, NichtGefunden
-from appkern.leitstelle import hoeren
+from appkern.einstellungen import Angebot, Option
+from appkern.kellerwolke import Kellerwolke, KellerwolkeFehler, NichtGefunden
+from appkern.leitstelle import LeitstellenFehler, hoeren
 from appkern.ton import TonDienst
 
 from .ablage.plaene import Plaene
-from .ablage.stimmen import Stimmen, zugang
+from .ablage.stimmen import KeineKellerwolke, Stimmen, zugang
 from .dienstablage import Ablage, DienstAblage
 from .referenz import WortZeit
-from .einstellungen import AppEinstellungen
+from .einstellungen import NUR_EINZELN, AppEinstellungen
 from .modell.plan import StimmWahl
 from .modell.stimme import Stimme
 from .sprechen import Gewaehlt, Katalogstimme, KeineLeitstelle, Klonstimme, Sprechdienst, mit_modus
@@ -50,6 +51,14 @@ class KeinRechtAufStimme(Exception):
 
 
 FRISTEN_TAKT_S = 3600
+VORGABE = "Vorgabe des Sprechdienstes"
+
+
+def _freigabe_app(o: Option) -> Option:
+    """Eine App zur Freigabe: Wert klein wie in der Erlaubnisliste, Name wie in der Kellerwolke."""
+    wert = o.wert.strip().lower()
+    hinweise = [h for h in (o.hinweis, "nur einzelne Stimmen" if wert == NUR_EINZELN else "") if h]
+    return Option(wert=wert, titel=o.titel, hinweis=", ".join(hinweise))
 
 
 class Teile(Begleiter):
@@ -66,6 +75,10 @@ class Teile(Begleiter):
         geruest.einstellungen.anbieten("dienst_klonen", geruest.leitstelle_angebot("stimme_klonen"))
         geruest.einstellungen.anbieten("dienst_hoeren", geruest.leitstelle_angebot("hoeren"))
         geruest.einstellungen.anbieten("dienst_ton", geruest.leitstelle_angebot("ton"))
+        geruest.einstellungen.anbieten("stimme_vorgabe", self.katalog_angebot)
+        geruest.einstellungen.anbieten("ersatzstimme", self.katalog_angebot)
+        geruest.einstellungen.anbieten_mit_sitzung("private_stimmen_fuer", self.freigabe_angebot)
+        geruest.einstellungen.anbieten_mit_sitzung("transkription_app", geruest.kellerwolke_apps_angebot())
         self.ton = TonDienst(lambda: geruest.leitstelle, lambda: e().dienst_ton)     # Tonarbeit nur auf dem Mac
         self._fristen: asyncio.Task | None = None
         self.dienst = Sprechdienst(lambda: geruest.leitstelle, lambda: (e().dienst_sprechen, e().dienst_klonen))
@@ -106,6 +119,33 @@ class Teile(Begleiter):
                 raise
             except Exception:  # noqa: BLE001 - die Kellerwolke kann kurz fehlen; in einer Stunde wieder
                 logging.getLogger("vertonung").warning("Dienstablage: Wegräumen nach Frist gescheitert", exc_info=True)
+
+    # --- Auswahl in den Einstellungen: Stimmen und Apps aus dem System, nie eingetippt ----------------------------------
+
+    async def katalog_angebot(self) -> Angebot:
+        """Feste Stimmen, jedes Mal vom Sprechdienst (über die Leitstelle); leer heißt seine Vorgabe."""
+        optionen = [Option(wert="", titel=VORGABE, hinweis="wie der Sprechdienst es vorgibt")]
+        try:
+            namen = await self.dienst.katalog()
+        except KeineLeitstelle:
+            return Angebot(optionen=optionen, eigener_wert=False, stand="Leitstelle noch nicht eingerichtet (Reiter Verbindungen)")
+        except LeitstellenFehler as f:
+            return Angebot(optionen=optionen, eigener_wert=False, stand=f"Sprechdienst antwortet nicht: {f.meldung}")
+        return Angebot(optionen=optionen + [Option(wert=n, titel=n, hinweis="Katalog") for n in namen], eigener_wert=False,
+                       stand=f"gefunden: {len(namen)} Stimmen im Katalog")
+
+    async def freigabe_angebot(self, sitzung: str) -> Angebot:
+        """Freigabe privater Stimmen als Paare: die Apps aus den Zugängen der Kellerwolke (Konto des Menschen, der die
+        Einstellungen ansieht) und die privaten Stimmen mit Namen. Gespeichert wird `app` oder `app:<Kennung>`, klein
+        geschrieben wie bisher."""
+        apps, stand = await self.geruest.kellerwolke_apps(sitzung)
+        optionen = [_freigabe_app(o) for o in apps]
+        try:
+            privat = await self.stimmen.alle("privat")
+        except (KellerwolkeFehler, KeineKellerwolke) as f:
+            privat, stand = [], " ".join(x for x in (stand, f"Private Stimmen ließen sich nicht lesen: {f}") if x)
+        zweite = [Option(wert=s.id.lower(), titel=s.name, hinweis="private Stimme") for s in privat]
+        return Angebot(optionen=optionen, zweite=zweite, eigener_wert=False, stand=stand)
 
     @property
     def einstellungen(self) -> AppEinstellungen:
@@ -206,7 +246,7 @@ class Teile(Begleiter):
         namen: dict[str, str] = {}
         for w in wahlen:
             if w.art == "katalog":
-                namen[w.schluessel] = w.name or ""
+                namen[w.schluessel] = w.name or VORGABE
             else:
                 try:
                     namen[w.schluessel] = (await self.stimmen.lesen(w.knoten_id)).name

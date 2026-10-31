@@ -86,7 +86,9 @@ Probe: `/api/v1/app` meldet `"einrichtung_noetig": false` und den Besitzer.
 
 Aus der Sicherung stehen sie im Verzeichnis. Frisch: in der [[Leitstelle]] die Anwendung "Vertonung" anlegen, ihren
 Schlüssel unter Einstellungen, Verbindungen eintragen, "Tondienst" wählen und "Adresse dieser App" auf {{adresse}}
-setzen. Unter Stimmen prüfen, welche Apps private Stimmen bekommen (Erlaubnisliste).
+setzen. Unter Sprechen "Stimme ab Werk" und "Ersatzstimme" aus dem Katalog wählen (leer: die Vorgabe des
+Sprechdienstes). Unter Stimmen bei "Private Stimmen für" je Eintrag eine App aus den Zugängen der Kellerwolke und
+"alle privaten Stimmen" oder eine bestimmte Stimme wählen (Erlaubnisliste); der Medienpool bekommt nur einzelne.
 
 Probe: unter Einstellungen, Verbindungen sind Kellerwolke und Leitstelle grün, und ein kurzer Text spricht hörbar mit
 einer Katalogstimme.
@@ -109,6 +111,9 @@ vertonung`. Probe wie in Schritt 3.
 - Sprechen scheitert: die Leitstelle meldet keinen Sprechdienst (Klangwerk sprechen nicht gestartet, oder der Mac
   schläft); Aufträge warten über den Appkern und versuchen es erneut.
 - Tonarbeit scheitert: kein Tondienst bei der Leitstelle (Klangwerk ton); das Ausrollen warnt schon davor.
-- Eine App bekommt eine private Stimme nicht: sie steht nicht auf der Erlaubnisliste unter Stimmen; das ist Absicht.
+- Eine App bekommt eine private Stimme nicht: sie steht nicht auf der Erlaubnisliste unter Stimmen ("Private Stimmen
+  für"); das ist Absicht. Dort die App und die Stimme wählen und speichern.
+- Unter "Private Stimmen für" fehlen die Apps: die Liste kommt mit der eigenen Anmeldung aus der Kellerwolke; ist die
+  Kellerwolke nicht erreichbar, sagt das der Hinweis darunter.
 - Das Ausrollen wartet lange: es wartet auf eine Lücke ohne laufenden Auftrag (bis vier Stunden); `--sofort` rollt
   trotzdem aus.

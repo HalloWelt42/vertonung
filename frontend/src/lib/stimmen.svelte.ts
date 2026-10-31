@@ -1,5 +1,6 @@
 // Stimmen für Auswahlfelder, einmal geladen und geteilt: Katalog (feste Stimmen des Sprechdienstes), fremde und private
-// Klonstimmen. Eine Wahl hat einen Schlüssel ("katalog:serena", "klon:<kennung>") wie im Backend.
+// Klonstimmen. Eine Wahl hat einen Schlüssel ("katalog:<name>", "klon:<kennung>") wie im Backend; "katalog:" ohne Namen
+// ist die Vorgabe des Sprechdienstes.
 import * as api from "./api";
 import type { Stimme, StimmWahl } from "./typen";
 
@@ -16,16 +17,19 @@ export async function stimmenLaden(): Promise<void> {
 
 export function schluessel(w: StimmWahl | null | undefined): string {
   if (!w) return "";
-  return w.art === "klon" ? `klon:${w.knoten_id}` : `katalog:${w.name}`;
+  return w.art === "klon" ? `klon:${w.knoten_id}` : `katalog:${w.name ?? ""}`;
 }
 
 export function alsWahl(s: string): StimmWahl {
   const [art, rest] = [s.slice(0, s.indexOf(":")), s.slice(s.indexOf(":") + 1)];
-  return art === "klon" ? { art: "klon", knoten_id: rest } : { art: "katalog", name: rest };
+  return art === "klon" ? { art: "klon", knoten_id: rest } : { art: "katalog", name: rest || null };
 }
+
+export const VORGABE = "Vorgabe des Sprechdienstes";
 
 export function stimmOptionen(): { wert: string; titel: string; hinweis?: string }[] {
   return [
+    { wert: "katalog:", titel: VORGABE },
     ...stimmenListe.fremd.map((s) => ({ wert: `klon:${s.id}`, titel: `${s.name} · fremd` })),
     ...stimmenListe.privat.map((s) => ({ wert: `klon:${s.id}`, titel: `${s.name} · privat` })),
     ...stimmenListe.katalog.map((s) => ({ wert: `katalog:${s.name}`, titel: `${s.name} · Katalog` })),
@@ -34,5 +38,5 @@ export function stimmOptionen(): { wert: string; titel: string; hinweis?: string
 
 export function stimmName(w: StimmWahl | null | undefined): string {
   const s = schluessel(w);
-  return stimmOptionen().find((o) => o.wert === s)?.titel ?? (w?.art === "katalog" ? `${w.name} · Katalog` : "Klonstimme");
+  return stimmOptionen().find((o) => o.wert === s)?.titel ?? (w?.art === "katalog" ? (w.name ? `${w.name} · Katalog` : VORGABE) : "Klonstimme");
 }
