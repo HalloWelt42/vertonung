@@ -10,3 +10,5 @@ ton = true
 [zugaenge]
 name = "Vertonung"
 leitstelle = ["text", "uebersetzen", "hoeren", "sprecher_erkennen", "sprecher_trennen", "stimme", "stimme_klonen", "ton"]
+# Konto der Kellerwolke, dem die App gehört: das Ausrollen besorgt auch Adresse und App-Schlüssel dort
+kellerwolke = "admin"

@@ -9,12 +9,12 @@ sicherung:
   - "nach der Regel des Appkerns eine Kopie von `vertonung.sqlite` nach `{{wurzel}}/sicherungen`, wöchentlich und vor dem Ausrollen (nur, wenn die jüngste älter als 24 Stunden ist), nie ohne Änderung, höchstens drei Stände (Einstellungen, Sicherung); das Werkzeug Sicherungen holt sie täglich nach `~/Sicherungen/vertonung/pi`"
   - "Stimmen und Ergebnisse liegen in der Kellerwolke und hängen an deren Sicherung"
 schluessel_orte:
-  - "Pi: Einstellungen im Verzeichnis `vertonung.sqlite`: App-Schlüssel der Kellerwolke (in der Oberfläche unter Einstellungen, verdeckt)"
+  - "Pi: `{{wurzel}}/.env`: Adresse und App-Schlüssel der Kellerwolke als feste Einstellung (VERTONUNG_FEST_KELLERWOLKE_*), vom Ausrollen gesetzt (HELF-77); in der Oberfläche nur angezeigt"
   - "Pi: `{{wurzel}}/.env`: Schlüssel und Adresse der Leitstelle als feste Einstellung (VERTONUNG_FEST_LEITSTELLE_*), vom Ausrollen gesetzt (HELF-77); in der Oberfläche nur angezeigt"
   - "Pi: `{{wurzel}}/.env`, Modus 0600, für Werte, die nicht ins Repo gehören"
   - "Pi: `{{wurzel}}/zertifikate/`, Blattzertifikat mit Schlüssel aus der Hausstelle (vom Ausrollen)"
 einrichten: einrichten.sh
-stand: 819ded5
+stand: cf4a1e9
 ---
 
 # Vertonung
@@ -38,7 +38,7 @@ Auf dem Pi läuft sie als Compose-Projekt aus `compose.pi.yml` hinter ihrem Vors
 
 - Pi nach [[Grundlage Pi]] mit Docker; Mac nach [[Grundlage Mac]] für Entwicklung, Ausrollen und Hausstelle (für die
   Tests der Entwicklung auch ffmpeg am Mac).
-- [[Kellerwolke]]: Konto zum Anmelden und ein App-Schlüssel für die Vertonung.
+- [[Kellerwolke]]: Konto zum Anmelden und ein App-Schlüssel für die Vertonung, den das Ausrollen besorgt.
 - [[Leitstelle]]: Anwendung "Vertonung" mit den Fähigkeiten aus `deploy/ausrollen.toml` (Abschnitt `[zugaenge]`); das
   Ausrollen legt sie an oder übernimmt sie und prüft, dass die Leitstelle den Tondienst meldet (fehlt er, ist das eine
   Warnung, kein Abbruch).
@@ -48,7 +48,7 @@ Auf dem Pi läuft sie als Compose-Projekt aus `compose.pi.yml` hinter ihrem Vors
 
 Zwei Wege. Aus der Sicherung: die jüngste Kopie von `vertonung.sqlite` zurückspielen; dann sind Einstellungen,
 Freigaben der Stimmen und offene Pläne wie vorher, Stimmen und Ergebnisse liegen in der Kellerwolke. Frisch: leere
-Datenbank, erste Einrichtung mit neuem App-Schlüssel, Leitstelle unter Einstellungen; die Stimmen findet sie in der
+Datenbank, Adresse und App-Schlüssel der Kellerwolke vom Ausrollen, Leitstelle unter Einstellungen; die Stimmen findet sie in der
 Kellerwolke wieder.
 
 ### 1. Repo und Entwicklungsumgebung am Mac
@@ -78,9 +78,9 @@ Probe: `curl -s --cacert "$(mkcert -CAROOT)/rootCA.pem" {{adresse}}/api/v1/app` 
 
 ### 4. Erste Einrichtung
 
-Aus der Sicherung entfällt sie. Frisch: in der [[Kellerwolke]] einen App-Schlüssel für die Vertonung anlegen,
-{{adresse}} öffnen und mit dem Einrichtungscode aus `{{wurzel}}/daten/einrichtungscode` (auf dem Pi) die Adresse der
-Kellerwolke und den Schlüssel eintragen; danach mit dem eigenen Kellerwolke-Konto anmelden.
+Entfällt: Adresse und App-Schlüssel der [[Kellerwolke]] setzt das Ausrollen als feste Einstellungen (Konto unter
+`[zugaenge]` in `deploy/ausrollen.toml`, neuer Schlüssel nur mit `tools/ausrollen.sh --zugaenge-erneuern`). Nach dem
+ersten Ausrollen {{adresse}} öffnen und mit dem eigenen Kellerwolke-Konto anmelden.
 
 Probe: `/api/v1/app` meldet `"einrichtung_noetig": false` und den Besitzer.
 
