@@ -46,6 +46,15 @@ PrivatFreigabe = _Alle | frozenset[str]
 """ALLE oder die Kennungen der einzeln freigegebenen privaten Stimmen (leer: keine)."""
 
 
+def rufende_app(konto: Konto | None) -> str | None:
+    """Die App hinter einem Aufruf, ob mit ihrem eigenen Schlüssel oder im Auftrag eines Menschen, dessen Sitzung sie auf
+    seinen Klick mitschickt; None nur für Menschen in der eigenen Oberfläche. Rechte richten sich nach dieser App, nicht
+    nach dem Menschen dahinter (HELF-78)."""
+    if konto is None:
+        return None
+    return konto.app or konto.im_auftrag
+
+
 class KeinRechtAufStimme(Exception):
     """Eine fremde App wollte eine private Stimme nutzen, ohne auf der Erlaubnisliste zu stehen."""
 
@@ -176,12 +185,14 @@ class Teile(Begleiter):
         return self.plaene.fuer(self.zugang(anfrage)) if anfrage else self.plaene
 
     def private_freigabe(self, konto: Konto | None) -> PrivatFreigabe:
-        """Welche privaten Stimmen der Aufrufer nutzen darf. Menschen alle; Apps nach der Erlaubnisliste: ein Eintrag
-        `app` gibt alle privaten Stimmen frei, `app:<Kennung der Stimme>` genau diese eine. Der Medienpool bekommt
-        nie alle (keine Stimmen von Freunden im Spiel), nur einzeln eingetragene."""
-        if konto is None or konto.mensch:
+        """Welche privaten Stimmen der Aufrufer nutzen darf. Menschen in der eigenen Oberfläche alle; Apps nach der
+        Erlaubnisliste, auch im Auftrag eines Menschen: ein Eintrag `app` gibt alle privaten Stimmen frei,
+        `app:<Kennung der Stimme>` genau diese eine. Der Medienpool bekommt nie alle (keine Stimmen von Freunden im
+        Spiel), nur einzeln eingetragene."""
+        rufer = rufende_app(konto)
+        if rufer is None:
             return ALLE
-        app = (konto.app or "").strip().lower()
+        app = rufer.strip().lower()
         eintraege = {a.strip().lower() for a in self.einstellungen.private_stimmen_fuer}
         if app in eintraege and app != "medienpool":
             return ALLE

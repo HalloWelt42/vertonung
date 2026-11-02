@@ -21,9 +21,17 @@ from appkern.auftraege import Auftrag
 
 from ..dienst import DienstEingabe, DienstSegment, Texte, ablegen, texte
 from ..modell.plan import Klonmodus, StimmWahl
-from ..teile import Teile
+from ..dienstablage import Ablage
+from ..teile import Teile, rufende_app
 
 SEGMENTE = TypeAdapter(list[DienstSegment])
+
+
+def fremd(konto: Konto, a: Ablage) -> bool:
+    """Ein Dienstauftrag gehört der App, die ihn gab, auch wenn sie im Auftrag eines Menschen kam; nur die eigene
+    Oberfläche sieht alle (HELF-78)."""
+    app = rufende_app(konto)
+    return app is not None and app != a.app
 
 
 class Abgeholt(BaseModel):
@@ -49,6 +57,7 @@ def router(teile: Teile) -> APIRouter:
                        behalten: bool = Form(True, description="false: nach dem Abholen in den Papierkorb, spätestens "
                                                                "48 Stunden nach dem Hochladen"),
                        konto: Konto = g.pflicht) -> Auftrag:
+        app = rufende_app(konto) or "Direkt"            # Ordner und Besitzer des Auftrags
         try:
             wahl = StimmWahl.model_validate_json(stimme) if stimme else None
             # Originalstimmen brauchen Sprecher und Wortzeiten; mitgeschickte Segmente haben beides nicht
@@ -65,13 +74,13 @@ def router(teile: Teile) -> APIRouter:
             with open(roh, "wb") as ziel:
                 while stueck := await datei.read(1024 * 1024):
                     ziel.write(stueck)
-            haupt = await ablegen(teile, konto.app or "Direkt", name, endung, roh, stuecke, ausgangssprache)
+            haupt = await ablegen(teile, app, name, endung, roh, stuecke, ausgangssprache)
         finally:
             shutil.rmtree(ordner, ignore_errors=True)
         eingabe = DienstEingabe(haupt_id=haupt.id, name=name, ausgangssprache=ausgangssprache, sprache=sprache, stimme=wahl,
                                 stimmen=stimmen, klonmodus=klonmodus, format=format, von=von(konto))
-        auftrag = await g.auftraege.einreihen("dienst_vertonen", eingabe, titel=f"{name} ({konto.app or 'direkt'})")
-        await teile.dienstablage.eintragen(auftrag.id, haupt.id, konto.app or "Direkt", behalten)
+        auftrag = await g.auftraege.einreihen("dienst_vertonen", eingabe, titel=f"{name} ({app})")
+        await teile.dienstablage.eintragen(auftrag.id, haupt.id, app, behalten)
         return auftrag
 
     @r.get("/dienst/{auftrag_id}/texte", response_model=Texte)
@@ -80,7 +89,7 @@ def router(teile: Teile) -> APIRouter:
         läuft oder nachdem er scheiterte), und Text der neuen Tonspur mit Zeiten, wenn er fertig ist; vor `abgeholt` zu
         holen."""
         a = await teile.dienstablage.eine(auftrag_id)
-        if a is None or (not konto.mensch and (konto.app or "Direkt") != a.app):
+        if a is None or fremd(konto, a):
             raise HTTPException(404, "Diesen Dienstauftrag gibt es nicht (mehr)")
         return await texte(teile, a, await g.auftraege.holen(auftrag_id))
 
@@ -88,7 +97,7 @@ def router(teile: Teile) -> APIRouter:
     async def abgeholt(auftrag_id: str, konto: Konto = g.pflicht) -> Abgeholt:
         """Der Sender hat das Ergebnis; hat er beim Hochladen nicht behalten gewählt, geht jetzt alles in den Papierkorb."""
         a = await teile.dienstablage.eine(auftrag_id)
-        if a is None or (not konto.mensch and (konto.app or "Direkt") != a.app):
+        if a is None or fremd(konto, a):
             raise HTTPException(404, "Diesen Dienstauftrag gibt es nicht (mehr)")
         if a.behalten:
             return Abgeholt(behalten=True)

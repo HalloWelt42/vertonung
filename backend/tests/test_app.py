@@ -65,6 +65,29 @@ async def test_private_stimmen_nur_erlaubt(app, monkeypatch):
     # Ein pauschaler Eintrag gibt dem Medienpool trotzdem nicht alle
     monkeypatch.setattr(teile.einstellungen, "private_stimmen_fuer", [*teile.einstellungen.private_stimmen_fuer, "medienpool"])
     assert not teile.darf_privat(medienpool, freund) and teile.darf_privat(medienpool, zeit)
+    # Im Auftrag eines Menschen zählt die App, nicht der Mensch dahinter (HELF-78)
+    assert not teile.darf_privat(Konto(id="1", name="chef", im_auftrag="Fremdapp"), freund)
+    assert not teile.private_freigabe(Konto(id="1", name="chef", im_auftrag="Fremdapp"))
+    assert teile.darf_privat(Konto(id="1", name="chef", im_auftrag="Rufzeichen"), freund)
+    im_auftrag_medienpool = Konto(id="1", name="chef", im_auftrag="Medienpool")
+    assert teile.darf_privat(im_auftrag_medienpool, zeit) and not teile.darf_privat(im_auftrag_medienpool, freund)
+
+
+def test_dienstauftraege_gehoeren_der_rufenden_app():
+    """Ein Dienstauftrag gehört der App, die ihn gab, auch im Auftrag eines Menschen; nur die eigene Oberfläche sieht
+    alle (HELF-78)."""
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from app.api.dienst import fremd
+    from app.dienstablage import Ablage
+
+    a = Ablage(auftrag_id="a1", haupt_id=uuid4(), app="Nachvertoner", behalten=True, plan_id=None, frist_bis=datetime.now(UTC))
+    assert not fremd(Konto(id="1", name="chef"), a)                              # eigene Oberfläche
+    assert not fremd(Konto(id="1", name="chef", app="Nachvertoner"), a)
+    assert not fremd(Konto(id="1", name="chef", im_auftrag="Nachvertoner"), a)
+    assert fremd(Konto(id="1", name="chef", app="Medienpool"), a)
+    assert fremd(Konto(id="1", name="chef", im_auftrag="Medienpool"), a)        # früher als Mensch durchgelassen
 
 
 def test_medienpool_nie_alle():
