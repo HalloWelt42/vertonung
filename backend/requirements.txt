@@ -1,4 +1,4 @@
-appkern[web,ton] @ https://github.com/HalloWelt42/appkern/archive/eee8335a99b8111af313d62d140d94f9c9afe766.tar.gz
+appkern[web,ton] @ https://github.com/HalloWelt42/appkern/archive/c24e7e470766d5a8a5fa93bdea0547a91cd7c279.tar.gz
 uvicorn[standard]>=0.30
 pytest>=8
 pytest-asyncio>=0.24

@@ -9,11 +9,12 @@ sicherung:
   - "nach der Regel des Appkerns eine Kopie von `vertonung.sqlite` nach `{{wurzel}}/sicherungen`, wöchentlich und vor dem Ausrollen (nur, wenn die jüngste älter als 24 Stunden ist), nie ohne Änderung, höchstens drei Stände (Einstellungen, Sicherung); das Werkzeug Sicherungen holt sie täglich nach `~/Sicherungen/vertonung/pi`"
   - "Stimmen und Ergebnisse liegen in der Kellerwolke und hängen an deren Sicherung"
 schluessel_orte:
-  - "Pi: Einstellungen im Verzeichnis `vertonung.sqlite`: App-Schlüssel der Kellerwolke, Schlüssel der Leitstelle (in der Oberfläche unter Einstellungen, verdeckt)"
+  - "Pi: Einstellungen im Verzeichnis `vertonung.sqlite`: App-Schlüssel der Kellerwolke (in der Oberfläche unter Einstellungen, verdeckt)"
+  - "Pi: `{{wurzel}}/.env`: Schlüssel und Adresse der Leitstelle als feste Einstellung (VERTONUNG_FEST_LEITSTELLE_*), vom Ausrollen gesetzt (HELF-77); in der Oberfläche nur angezeigt"
   - "Pi: `{{wurzel}}/.env`, Modus 0600, für Werte, die nicht ins Repo gehören"
   - "Pi: `{{wurzel}}/zertifikate/`, Blattzertifikat mit Schlüssel aus der Hausstelle (vom Ausrollen)"
 einrichten: einrichten.sh
-stand: 9d3e549
+stand: 819ded5
 ---
 
 # Vertonung
@@ -38,8 +39,9 @@ Auf dem Pi läuft sie als Compose-Projekt aus `compose.pi.yml` hinter ihrem Vors
 - Pi nach [[Grundlage Pi]] mit Docker; Mac nach [[Grundlage Mac]] für Entwicklung, Ausrollen und Hausstelle (für die
   Tests der Entwicklung auch ffmpeg am Mac).
 - [[Kellerwolke]]: Konto zum Anmelden und ein App-Schlüssel für die Vertonung.
-- [[Leitstelle]]: Anwendung "Vertonung" mit den Fähigkeiten stimme, stimme_klonen, ton, hoeren und text; das Ausrollen
-  prüft, dass die Leitstelle den Tondienst meldet (fehlt er, ist das eine Warnung, kein Abbruch).
+- [[Leitstelle]]: Anwendung "Vertonung" mit den Fähigkeiten aus `deploy/ausrollen.toml` (Abschnitt `[zugaenge]`); das
+  Ausrollen legt sie an oder übernimmt sie und prüft, dass die Leitstelle den Tondienst meldet (fehlt er, ist das eine
+  Warnung, kein Abbruch).
 - [[Klangwerk]] am Mac mit den Diensten sprechen, klonen und ton (über den [[Maschinenraum]]).
 
 ## Neu einrichten
@@ -84,9 +86,10 @@ Probe: `/api/v1/app` meldet `"einrichtung_noetig": false` und den Besitzer.
 
 ### 5. Leitstelle, Tondienst und Stimmen
 
-Aus der Sicherung stehen sie im Verzeichnis. Frisch: in der [[Leitstelle]] die Anwendung "Vertonung" anlegen, ihren
-Schlüssel unter Einstellungen, Verbindungen eintragen, "Tondienst" wählen und "Adresse dieser App" auf {{adresse}}
-setzen. Unter Sprechen "Stimme ab Werk" und "Ersatzstimme" aus dem Katalog wählen (leer: die Vorgabe des
+Den Zugang zur [[Leitstelle]] besorgt das Ausrollen (anlegen oder übernehmen, Schlüssel als feste Einstellung in
+`{{wurzel}}/.env`, erneuern mit `tools/ausrollen.sh --zugaenge-erneuern`); unter Einstellungen, Verbindungen steht er
+mit Schloss. Aus der Sicherung steht der Rest im Verzeichnis; frisch "Tondienst" wählen und "Adresse dieser App" auf
+{{adresse}} setzen. Unter Sprechen "Stimme ab Werk" und "Ersatzstimme" aus dem Katalog wählen (leer: die Vorgabe des
 Sprechdienstes). Unter Stimmen bei "Private Stimmen für" je Eintrag eine App aus den Zugängen der Kellerwolke und
 "alle privaten Stimmen" oder eine bestimmte Stimme wählen (Erlaubnisliste); der Medienpool bekommt nur einzelne.
 

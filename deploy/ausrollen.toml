@@ -5,3 +5,8 @@ kennung = "vertonung"
 repo = "https://github.com/HalloWelt42/vertonung.git"
 # ton: die App nutzt den Tondienst (Tonarbeit auf dem Mac über die Leitstelle); geprüft wird, ob die Leitstelle ihn meldet
 ton = true
+# Zugänge besorgt das Ausrollen (HELF-77, Appkern docs/ZUGAENGE.md): der Zugang zur Leitstelle mit genau diesen
+# Fähigkeiten; der Schlüssel geht als feste Einstellung in die .env auf dem Pi, niemand trägt ihn mehr ein
+[zugaenge]
+name = "Vertonung"
+leitstelle = ["text", "uebersetzen", "hoeren", "sprecher_erkennen", "sprecher_trennen", "stimme", "stimme_klonen", "ton"]
