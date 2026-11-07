@@ -22,7 +22,7 @@ from pathlib import Path
 
 from appkern.leitstelle import Leitstelle, Nachricht
 
-from ..einstellungen import AppEinstellungen
+from ..einstellungen import UEBERSETZEN_VORGABE, AppEinstellungen
 from ..modell.plan import Plan
 from ..uebersetzen import FENSTER, SPIELRAUM, Stueck, budgets, fenster_uebersetzen, glaetten
 
@@ -48,7 +48,7 @@ class Zaehler:
         return await self.ls.chat(nachrichten, **weiter)
 
 
-async def gutachten(ls: Leitstelle, modell: str | None, paare: list[tuple[int, str, str]]) -> dict[int, dict]:
+async def gutachten(ls: Leitstelle, modell: str, paare: list[tuple[int, str, str]]) -> dict[int, dict]:
     system = ("Du prüfst Übersetzungen aus dem Englischen ins Deutsche für eine Vertonung. Knapper formulieren ist "
               "erlaubt. Prüfe je Abschnitt nur: Fehlt eine Aussage des Originals (fehlt), oder steht etwas da, das im "
               "Original nicht vorkommt (hinzu)? Nenne beides kurz, sonst leer. vollstaendig ist true, wenn nichts "
@@ -139,7 +139,7 @@ def main() -> None:
     p.add_argument("--modelle", help="Modelle zum Übersetzen, durch Kommas getrennt")
     p.add_argument("--tempo", type=float, default=17.0, help="Sprechtempo der Stimme in Zeichen je Sekunde")
     p.add_argument("--begutachten", help="nur eine fertige Messung (JSON) mit --gutachter erneut begutachten")
-    p.add_argument("--gutachter", default="qwen/qwen3-next-80b")
+    p.add_argument("--gutachter", default=UEBERSETZEN_VORGABE, help="Modell, das begutachtet (Vorgabe: %(default)s)")
     p.add_argument("--aus")
     args = p.parse_args()
     if not (args.modelle or args.begutachten):

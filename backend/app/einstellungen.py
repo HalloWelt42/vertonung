@@ -20,6 +20,8 @@ Format = Literal["mp3", "wav", "flac", "ogg"]
 # Freigabe privater Stimmen als Liste von Paaren (Appkern): je Eintrag "app" (alle) oder "app:<Kennung der Stimme>"
 FREIGABE = {"erstes": "App", "zweites": "Stimme", "leer": "alle privaten Stimmen"}
 NUR_EINZELN = "medienpool"      # bekommt nie alle privaten Stimmen (keine Stimmen von Freunden im Spiel)
+# Modell zum Übersetzen ab Werk; die Vertonung schickt immer ein Modell mit (LS-19: die Leitstelle wählt nie selbst)
+UEBERSETZEN_VORGABE = "qwen/qwen3-next-80b"
 FORMATE = {"mp3": "MP3 mono 24 kHz", "wav": "WAV mono 24 kHz", "flac": "FLAC mono 24 kHz", "ogg": "OGG Opus mono 24 kHz"}
 
 
@@ -46,11 +48,20 @@ class AppEinstellungen(Grundeinstellungen):
                                      description="Jeder neu gesprochene Abschnitt wird zurückgehört und Wort für Wort mit "
                                                  "dem Text verglichen; Abweichungen stehen im Bericht. Kostet etwas Zeit.")
 
-    uebersetzen_modell: str = Field("", title="Modell zum Übersetzen", json_schema_extra=ZEITGENAU,
-                                    description="Leer: die Kette der Vertonung in der Leitstelle. Sonst dieses Modell "
-                                                "(Messung 18.10.2026: Qwen 3.6 35B-A3B übersetzt so vollständig wie das "
-                                                "80B, rund dreieinhalbmal schneller). Was zu groß ist, entlädt die "
-                                                "Leitstelle selbst.")
+    uebersetzen_modell: str = Field(UEBERSETZEN_VORGABE, min_length=1, title="Modell zum Übersetzen",
+                                    json_schema_extra=ZEITGENAU,
+                                    description="Übersetzt und fasst zu lange Abschnitte knapper. Die Vertonung nennt "
+                                                "es bei jeder Anfrage, die Leitstelle wählt nie selbst (Messung "
+                                                "19.10.2026: das 80B bleibt der Übersetzer). Was zu groß ist, entlädt "
+                                                "die Leitstelle selbst.")
+
+    @field_validator("uebersetzen_modell", mode="before")
+    @classmethod
+    def _leer_heisst_vorgabe(cls, wert: object) -> object:
+        """Ein leerer Wert (früher "Kette der App", gespeichert vor LS-19) gilt als die Vorgabe: ohne Modell lehnt die
+        Leitstelle ab."""
+        return UEBERSETZEN_VORGABE if isinstance(wert, str) and not wert.strip() else wert
+
     komfort: float = Field(1.15, ge=1.0, le=1.5, title="Stauchen unauffällig bis",
                            json_schema_extra={**ZEITGENAU, "schritt": 0.05, "einheit": "fach"},
                            description="Bis zu diesem Faktor klingt schnelleres Sprechen noch natürlich; mehr wird im Bericht "

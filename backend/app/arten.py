@@ -113,7 +113,7 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
                     for r in plan.rollen}
             neu = await plan_uebersetzen(plan, GeduldigeLeitstelle(ls, geduld), zeichen_je_s=je_s, komfort=einst.komfort, hoechstens=einst.hoechstens,
                                          fortschritt=uebersetzt, pruefen=k.pruefen, merken=merken,
-                                         modell=einst.uebersetzen_modell or None)
+                                         modell=einst.uebersetzen_modell)
             await k.merken(uebersetzt=sorted(set(k.zwischenstand.get("uebersetzt", [])) | set(neu)))
         quelle: Tonformat | None = None
         if plan.art == "zeitgenau":
@@ -140,7 +140,7 @@ async def plan_ausfuehren(teile: Teile, k: Kontext, plan_id: UUID, anfrage_id: U
             await k.fortschritt(0.86, f"Knapper fassen: {len(lang)} Abschnitte passen nicht in ihre Zeit", phase="sprechen")
             knapper = await knapper_fassen(GeduldigeLeitstelle(ls, geduld), lang, gelaufen.ausgangssprache or "en", gelaufen.sprache,
                                            titel=f"Vertonung: {gelaufen.name} knapper fassen",
-                                           modell=einst.uebersetzen_modell or None)
+                                           modell=einst.uebersetzen_modell)
             for a in gelaufen.abschnitte:
                 if a.nr in knapper:
                     a.text = knapper[a.nr]

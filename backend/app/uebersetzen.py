@@ -2,9 +2,10 @@
 natürliche gesprochene Sprache. Jeder Abschnitt hat ein Zeichenbudget aus seinem Zeitfenster und dem gemessenen
 Sprechtempo seiner Stimme: ein Ziel (passt mit unauffälligem Stauchen) und eine Grenze (passt mit dem stärksten
 Stauchen). Knapper formulieren ist erlaubt, kürzen des Inhalts nie. Übersetzt wird in Fenstern mit den vorigen
-Abschnitten als Zusammenhang, über die Leitstelle (Kette der App: das große Sprachmodell). Jede Antwort wird geprüft;
-fehlt ein Abschnitt, wird er gezielt noch einmal angefragt, ist einer über der Grenze, wird er knapper erbeten (das
-geht auch nach dem Sprechen, wenn ein Abschnitt trotz Stauchen nicht in seine Zeit passt)."""
+Abschnitten als Zusammenhang, über die Leitstelle mit dem Modell aus der Einstellung "Modell zum Übersetzen" (die
+Leitstelle wählt nie selbst). Jede Antwort wird geprüft; fehlt ein Abschnitt, wird er gezielt noch einmal angefragt,
+ist einer über der Grenze, wird er knapper erbeten (das geht auch nach dem Sprechen, wenn ein Abschnitt trotz Stauchen
+nicht in seine Zeit passt)."""
 
 from __future__ import annotations
 
@@ -136,7 +137,7 @@ def knapper_text(fassungen: list[Fassung]) -> str:
 
 
 async def _antworten(ls: Leitstelle, system: str, nutzer: str, titel: str, gesucht: set[int],
-                     modell: str | None = None) -> dict[int, str]:
+                     modell: str) -> dict[int, str]:
     """Eine Anfrage mit festem Antwortschema; liefert die Texte der gesuchten Nummern, die gekommen sind."""
     antwort = await ls.chat([Nachricht.system(system), Nachricht.nutzer(nutzer)], titel=titel, modell=modell, response_format=SCHEMA,
                             temperature=0.2)
@@ -153,7 +154,7 @@ async def _antworten(ls: Leitstelle, system: str, nutzer: str, titel: str, gesuc
 
 
 async def knapper_fassen(ls: Leitstelle, fassungen: list[Fassung], von: str, nach: str, titel: str,
-                         modell: str | None = None) -> dict[int, str]:
+                         modell: str) -> dict[int, str]:
     """Zu lange Abschnitte knapper erbitten (höchstens KNAPPER_RUNDEN Runden); geliefert wird je Abschnitt die kürzeste
     Fassung, die kürzer ist als die bisherige. Was nicht kürzer wird, fehlt im Ergebnis (dann bleibt der alte Text)."""
     beste: dict[int, str] = {}
@@ -174,8 +175,8 @@ async def knapper_fassen(ls: Leitstelle, fassungen: list[Fassung], von: str, nac
 
 
 async def fenster_uebersetzen(ls: Leitstelle, stuecke: list[Stueck], davor: list[tuple[str, str]], von: str, nach: str,
-                              titel: str, modell: str | None = None) -> dict[int, str]:
-    """Ein Fenster übersetzen; `modell` nur für Messungen (sonst die Kette der App in der Leitstelle)."""
+                              titel: str, modell: str) -> dict[int, str]:
+    """Ein Fenster mit `modell` übersetzen."""
     offen = {s.nr: s for s in stuecke}
     fertig: dict[int, str] = {}
     for _ in range(VERSUCHE):
@@ -211,7 +212,7 @@ def zu_lang(plan: Plan, nummern: set[int], hoechstens: float) -> list[Fassung]:
 
 async def plan_uebersetzen(plan: Plan, ls: Leitstelle, *, zeichen_je_s: dict[str, float], komfort: float, hoechstens: float,
                            fortschritt: Callable[[float, str], Awaitable[None]], pruefen: Callable[[], Awaitable[None]],
-                           merken: Callable[[Plan], Awaitable[None]], modell: str | None = None) -> list[int]:
+                           merken: Callable[[Plan], Awaitable[None]], modell: str) -> list[int]:
     """Übersetzt alle Abschnitte, deren Original sich seit der letzten Übersetzung geändert hat; nach jedem Fenster wird
     der Plan gemerkt (fortsetzbar). Liefert die Nummern der übersetzten Abschnitte. `zeichen_je_s` je Rolle."""
     von, nach = plan.ausgangssprache or "en", plan.sprache

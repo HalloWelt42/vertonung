@@ -92,6 +92,9 @@ mit Schloss. Aus der Sicherung steht der Rest im Verzeichnis; frisch "Tondienst"
 {{adresse}} setzen. Unter Sprechen "Stimme ab Werk" und "Ersatzstimme" aus dem Katalog wählen (leer: die Vorgabe des
 Sprechdienstes). Unter Stimmen bei "Private Stimmen für" je Eintrag eine App aus den Zugängen der Kellerwolke und
 "alle privaten Stimmen" oder eine bestimmte Stimme wählen (Erlaubnisliste); der Medienpool bekommt nur einzelne.
+Unter Zeitgenau steht "Modell zum Übersetzen" (Vorgabe `qwen/qwen3-next-80b`): die Vertonung nennt dieses Modell bei
+jeder Anfrage, die Leitstelle wählt nie selbst; die Auswahl zeigt nur Modelle, die die Leitstelle der App fürs
+Übersetzen anbietet.
 
 Probe: unter Einstellungen, Verbindungen sind Kellerwolke und Leitstelle grün, und ein kurzer Text spricht hörbar mit
 einer Katalogstimme.
@@ -114,6 +117,8 @@ vertonung`. Probe wie in Schritt 3.
 - Sprechen scheitert: die Leitstelle meldet keinen Sprechdienst (Klangwerk sprechen nicht gestartet, oder der Mac
   schläft); Aufträge warten über den Appkern und versuchen es erneut.
 - Tonarbeit scheitert: kein Tondienst bei der Leitstelle (Klangwerk ton); das Ausrollen warnt schon davor.
+- Übersetzen scheitert, weil die Leitstelle das Modell nicht kennt oder der App nicht freigibt: unter "Modell zum
+  Übersetzen" ein Modell aus der Auswahl wählen.
 - Eine App bekommt eine private Stimme nicht: sie steht nicht auf der Erlaubnisliste unter Stimmen ("Private Stimmen
   für"); das ist Absicht. Dort die App und die Stimme wählen und speichern.
 - Unter "Private Stimmen für" fehlen die Apps: die Liste kommt aus der Kellerwolke (ab Fassung 0.88); ist sie nicht

@@ -50,12 +50,14 @@ class ScheinLeitstelle:
         self.aufrufe: list[tuple[str, str]] = []      # (Stimme oder "klon", Text)
         self.dateien: dict[str, bytes] = {}
         self.uebersetzt = 0
+        self.modelle: list[str | None] = []         # das Modell jeder Anfrage ans Sprachmodell (LS-19: immer eins)
         self.gehoert = 0
         self.scheitern_bei: str | None = None          # ein Text, der dieses Wort enthält, scheitert beim Sprechen
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         if request.url.path == "/v1/chat/completions":          # Sprachmodell: übersetzt mit "DE: " davor
             daten = json.loads(request.content)
+            self.modelle.append(daten.get("model"))
             stuecke = [json.loads(z) for z in daten["messages"][-1]["content"].splitlines() if z.startswith("{")]
             self.uebersetzt += len(stuecke)
             antwort = {"abschnitte": [{"nr": x["nr"], "text": f"DE: {x['text']}"} for x in stuecke]}

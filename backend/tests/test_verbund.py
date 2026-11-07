@@ -126,6 +126,7 @@ async def test_ganzer_weg(tmp_path: Path):
                 a = (await c.post(f"/api/v1/plaene/{z['id']}/vertonen", headers=h)).json()
                 erg = (await fertig(c, h, a["id"]))["ergebnis"]
                 assert erg["pfad"].endswith("Verbundtest Show.sprache.wav") and schein.uebersetzt == 2
+                assert schein.modelle and set(schein.modelle) == {"qwen/qwen3-next-80b"}   # immer ein Modell, die Vorgabe
                 z = (await c.get(f"/api/v1/plaene/{z['id']}", headers=h)).json()
                 assert [x["text"] for x in z["plan"]["abschnitte"]] == ["DE: Hello everyone.", "DE: Welcome to the show about rent."]
                 assert [x["stand"] for x in z["staende"]] == ["gesprochen", "gesprochen"]

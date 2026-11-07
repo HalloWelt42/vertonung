@@ -136,6 +136,8 @@ async def test_auswahl_statt_freitext(app, monkeypatch):
                                                                     ("vorlesen", "Vorlesen")]
         assert "nur einzelne" in a["optionen"][0]["hinweis"] and a["stand"] == ""
         assert a["zweite"] == [{"wert": zeit.lower(), "titel": "Zeit Stimme", "hinweis": "private Stimme"}]
+        a = (await c.get("/api/v1/einstellungen/angebot/uebersetzen_modell", headers=h)).json()
+        assert "" not in [o["wert"] for o in a["optionen"]] and felder["uebersetzen_modell"]["wert"] == "qwen/qwen3-next-80b"
         a = (await c.get("/api/v1/einstellungen/angebot/transkription_app", headers=h)).json()
         assert [o["wert"] for o in a["optionen"]] == ["Medienpool", "Rufzeichen", "Vorlesen"] and not a["eigener_wert"]
 

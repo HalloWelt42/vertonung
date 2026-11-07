@@ -21,9 +21,11 @@ class Modell:
     def __init__(self, auslassen=(), nie=(), lang=()):
         self.anfragen: list[list[int]] = []
         self.knapper: list[list[int]] = []
+        self.modelle: list[str | None] = []
         self.auslassen, self.nie, self.lang = set(auslassen), set(nie), set(lang)
 
-    async def chat(self, nachrichten, **_):
+    async def chat(self, nachrichten, *, modell=None, **_):
+        self.modelle.append(modell)
         stuecke = [json.loads(z) for z in nachrichten[-1].inhalt.splitlines() if z.startswith("{")]
         if nachrichten[0].inhalt.startswith("Du überarbeitest"):
             self.knapper.append([s["nr"] for s in stuecke])
@@ -39,11 +41,12 @@ async def _nichts(*_):
 
 
 TEMPO = {"r1": 10.0, "r2": 10.0}
+MODELL = "qwen/qwen3.6-35b-a3b"
 
 
 async def uebersetzen(p, m, merken=_nichts):
     return await plan_uebersetzen(p, m, zeichen_je_s=TEMPO, komfort=1.15, hoechstens=1.5, fortschritt=_nichts,
-                                  pruefen=_nichts, merken=merken)
+                                  pruefen=_nichts, merken=merken, modell=MODELL)
 
 
 def plan():
@@ -88,6 +91,7 @@ async def test_zu_lange_uebersetzung_wird_knapper_erbeten():
     m = Modell(lang={1})
     await uebersetzen(p, m)
     assert m.knapper == [[1]] and p.abschnitte[0].text == "kurz 1"      # 79 Zeichen über der Grenze von 37
+    assert m.modelle == [MODELL, MODELL]                                 # Übersetzen und Knapperfassen nennen das Modell
 
 
 def test_zu_lang_gesprochenes_wird_erkannt():
@@ -98,3 +102,14 @@ def test_zu_lang_gesprochenes_wird_erkannt():
     # 5 s in 2,5 s braucht zweifach: knapper auf 50 * 1,5 / 2 * 0,95 Zeichen; 3,6 s in 3,5 s und 4 s in 6 s passen
     assert [(f.nr, f.grenze) for f in lang] == [(1, 35)]
     assert zu_lang(p, {2, 3}, 1.5) == []                                 # nur Abschnitte, die dieser Lauf übersetzt hat
+
+
+def test_modell_zum_uebersetzen_nie_leer():
+    """LS-19: die Leitstelle wählt nie selbst; ab Werk das 80B, ein leerer Wert (früher "Kette der App") gilt als
+    Vorgabe."""
+    from app.einstellungen import UEBERSETZEN_VORGABE, AppEinstellungen
+
+    assert UEBERSETZEN_VORGABE == "qwen/qwen3-next-80b" == AppEinstellungen().uebersetzen_modell
+    assert AppEinstellungen(uebersetzen_modell="").uebersetzen_modell == UEBERSETZEN_VORGABE
+    assert AppEinstellungen(uebersetzen_modell="  ").uebersetzen_modell == UEBERSETZEN_VORGABE
+    assert AppEinstellungen(uebersetzen_modell=MODELL).uebersetzen_modell == MODELL
