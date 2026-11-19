@@ -120,6 +120,9 @@ neu erzeugt. Der Text wird dadurch nicht erneut übersetzt. Frühere Audiofassun
 die Reparatur löscht weder vorhandene Aufnahmen noch sichtbaren Verlauf. Unveränderte neue Ergebnisse werden weiter
 wiederverwendet.
 
+Die Aussetzerprüfung berücksichtigt das gewählte Tempo: Ein absichtlich schneller gesprochener Abschnitt wird nicht
+wegen seiner kürzeren Dauer wiederholt oder durch eine andere Stimme ersetzt (HELF-245).
+
 - Sprechen scheitert: die Leitstelle meldet keinen Sprechdienst (Klangwerk sprechen nicht gestartet, oder der Mac
   schläft); Aufträge warten über den Appkern und versuchen es erneut.
 - Tonarbeit scheitert: kein Tondienst bei der Leitstelle (Klangwerk ton); das Ausrollen warnt schon davor.

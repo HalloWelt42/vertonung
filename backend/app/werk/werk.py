@@ -75,7 +75,8 @@ class Werk:
             await self.dienst.sprechen(text, stimme, sprache, tempo, roh, titel=titel)
             laut = (await self.ton.aufbereiten(roh, Aufbereiten(messen=Messen(laut=STILLE)), [],
                                                titel=f"{titel}, prüfen")).messwerte.laut
-            if laut is not None and befund(text, laut.dauer_s, laut.spitze) == "gut":
+            # Die Prüfung beschreibt das ursprüngliche Sprechtempo. Gewolltes Beschleunigen ist kein Aussetzer.
+            if laut is not None and befund(text, laut.dauer_s * tempo, laut.spitze) == "gut":
                 return Gutes(roh, laut.von_s, laut.bis_s), versuch
         return None, VERSUCHE
 

@@ -29,7 +29,7 @@ class Schein:
     async def sprechen(self, text, stimme, sprache, tempo, ziel: Path, *, titel=""):
         name = stimme.name if isinstance(stimme, Katalogstimme) else "klon"
         self.aufrufe.append((name, text))
-        dauer = max(0.3, len(text) / 15)
+        dauer = max(0.3, len(text) / 15) / tempo
         laut = "0" if name == "stumm" or text in self.aussetzer else "0.5"
         self.aussetzer.discard(text)
         p = await asyncio.create_subprocess_exec(programm("ffmpeg"), "-nostdin", "-loglevel", "error", "-y", "-f", "lavfi",
@@ -109,6 +109,17 @@ async def test_neue_synthesefassung_erhaelt_alte_ergebnisse(tmp_path, monkeypatc
     schein.aufrufe.clear()
     await ausfuehren(werk, neu, tmp_path, "wiederholt")
     assert schein.aufrufe == []
+
+
+async def test_gewolltes_schnelles_tempo_ist_kein_aussetzer(tmp_path):
+    schein = Schein()
+    werk = Werk(TonHier(), schein, ersatzstimme=lambda: "aiden")
+    plan = aus_text("Brief", "Dieser ganze Satz wird absichtlich mit dem doppelten Tempo vorgelesen.", SERENA)
+    plan.rollen[0].tempo = 2.0
+    neu, _ = await ausfuehren(werk, plan, tmp_path)
+    assert len(schein.aufrufe) == 1
+    assert not neu.abschnitte[0].bericht.ersatz and neu.abschnitte[0].bericht.versuche == 1
+    assert neu.abschnitte[0].dauer_s < len(plan.abschnitte[0].text) / 25
 
 
 async def test_zeitgenau_wie_quelle(tmp_path):
