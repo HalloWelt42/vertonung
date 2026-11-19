@@ -126,9 +126,7 @@ class Werk:
                 wie = mit_modus(gewaehlt[rolle.stimme.schluessel], rolle.klonmodus, plan.sprache, self._sprachfremd())
                 g = await self.abschnitt_sprechen(a.gesprochen(plan.sprache), wie, plan.sprache, rolle.tempo, datei,
                                                   titel=f"{plan.name}, Abschnitt {a.nr}")
-                for alt in speicher.glob(f"{a.nr:05d}-*.wav"):
-                    if alt != datei:
-                        alt.unlink(missing_ok=True)
+                # Frühere Fassungen bleiben erhalten. Eine neue Synthese ist keine Löschfreigabe für Nutzeraudio.
                 dauer = g.dauer_s
                 a.gesprochen_als, a.bericht = soll, Bericht(versuche=g.versuche, ersatz=g.ersatz, stuecke=g.stuecke)
             dateien[a.nr] = datei

@@ -114,6 +114,12 @@ vertonung`. Probe wie in Schritt 3.
 
 ## Wenn etwas klemmt
 
+Seit der Reparatur HELF-247 unterscheidet die Prüfsumme eine neue Synthesefassung. Ein bisher gesprochener Plan kann
+deshalb erneut als geändert erscheinen: Beim nächsten beauftragten Lauf wird der Ton mit den reparierten Sprachdiensten
+neu erzeugt. Der Text wird dadurch nicht erneut übersetzt. Frühere Audiofassungen im Zwischenspeicher bleiben erhalten;
+die Reparatur löscht weder vorhandene Aufnahmen noch sichtbaren Verlauf. Unveränderte neue Ergebnisse werden weiter
+wiederverwendet.
+
 - Sprechen scheitert: die Leitstelle meldet keinen Sprechdienst (Klangwerk sprechen nicht gestartet, oder der Mac
   schläft); Aufträge warten über den Appkern und versuchen es erneut.
 - Tonarbeit scheitert: kein Tondienst bei der Leitstelle (Klangwerk ton); das Ausrollen warnt schon davor.

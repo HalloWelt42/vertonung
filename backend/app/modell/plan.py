@@ -18,6 +18,8 @@ Zielformat = Literal["mp3", "wav", "flac", "ogg", "wie_quelle", "m4a"]   # m4a: 
 Stand = Literal["offen", "gesprochen", "geaendert"]
 Klonmodus = Literal["auto", "icl", "abdruck"]   # wie eine Klonstimme spricht (siehe sprechen.mit_modus)
 Weg = Literal["frei", "luecke", "gestaucht", "geschoben"]
+# Neue Sprachweitergabe, vollständige Ausgabe und echtes Tempo: frühere Ergebnisse bleiben, werden aber neu erzeugt.
+SYNTHESEFASSUNG = "2"
 
 
 class StimmWahl(BaseModel):
@@ -92,7 +94,7 @@ class Abschnitt(BaseModel):
         return sprechbar(self.text, sprache)
 
     def soll(self, rolle: Rolle, sprache: str) -> str:
-        teile = [self.gesprochen(sprache).strip(), rolle.stimme.schluessel, f"{rolle.tempo:.3f}", sprache]
+        teile = [SYNTHESEFASSUNG, self.gesprochen(sprache).strip(), rolle.stimme.schluessel, f"{rolle.tempo:.3f}", sprache]
         if rolle.klonmodus != "auto":                 # "auto" ändert die Summe nicht (ältere Pläne bleiben gesprochen)
             teile.append(rolle.klonmodus)
         roh = "\x1f".join(teile)

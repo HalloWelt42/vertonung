@@ -88,6 +88,29 @@ async def test_ersatzstimme_nie_stumm(tmp_path):
     assert float(np.max(np.abs(werte))) > 0.03                                 # Prüfton 1/8 mal 0,5, nicht still
 
 
+async def test_neue_synthesefassung_erhaelt_alte_ergebnisse(tmp_path, monkeypatch):
+    from app.modell import plan as modell
+
+    schein = Schein()
+    werk = Werk(TonHier(), schein, ersatzstimme=lambda: "aiden")
+    plan = aus_text("Brief", "Der vollständige erste Satz.", SERENA)
+    plan.abschnitte[0].original = "The complete first sentence."
+    plan.abschnitte[0].uebersetzt_aus = modell.uebersetzungssumme(plan.abschnitte[0].original, plan.sprache)
+    monkeypatch.setattr(modell, "SYNTHESEFASSUNG", "vorher")
+    alt, _ = await ausfuehren(werk, plan, tmp_path, "vorher")
+    dateien = {p: p.read_bytes() for p in (tmp_path / "speicher").glob("*.wav")}
+    schein.aufrufe.clear()
+    monkeypatch.setattr(modell, "SYNTHESEFASSUNG", "nachher")
+    assert len(alt.zu_sprechen()) == 1 and not alt.zu_uebersetzen()
+    neu, _ = await ausfuehren(werk, alt, tmp_path, "nachher")
+    assert len(schein.aufrufe) == 1 and neu.stand(neu.abschnitte[0]) == "gesprochen"
+    assert len(list((tmp_path / "speicher").glob("*.wav"))) == 2
+    assert all(p.read_bytes() == inhalt for p, inhalt in dateien.items())
+    schein.aufrufe.clear()
+    await ausfuehren(werk, neu, tmp_path, "wiederholt")
+    assert schein.aufrufe == []
+
+
 async def test_zeitgenau_wie_quelle(tmp_path):
     schein = Schein()
     werk = Werk(TonHier(), schein, ersatzstimme=lambda: "aiden")
