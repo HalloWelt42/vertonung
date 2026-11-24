@@ -30,13 +30,21 @@ class Zugang:
 
 
 class Plaene:
+    def __init__(self, abschnitte=()) -> None:
+        self.plan = SimpleNamespace(sprache="de", abschnitte=list(abschnitte), rolle=lambda _r: SimpleNamespace(name="Host"))
+
     async def lesen(self, plan_id):
-        raise AssertionError("Der Plan wird erst gelesen, wenn der Auftrag fertig ist")
+        return self.plan, None
 
 
-def teile(mit_transkript: bool = True):
+def abschnitt(nr: int, text: str, uebersetzt: bool) -> SimpleNamespace:
+    return SimpleNamespace(nr=nr, rolle="r1", text=text, original="Good evening.", start=float(nr), ende=nr + 1.0,
+                           uebersetzung_noetig=lambda _s: not uebersetzt)
+
+
+def teile(mit_transkript: bool = True, abschnitte=()):
     zugang = Zugang(mit_transkript)
-    return SimpleNamespace(zugang=lambda: zugang, plaene=Plaene())
+    return SimpleNamespace(zugang=lambda: zugang, plaene=Plaene(abschnitte))
 
 
 def ablage(weitergegeben: bool) -> Ablage:
@@ -65,3 +73,12 @@ async def test_noch_kein_transkript_heisst_leer():
 async def test_mitgeschickter_text_kommt_nicht_zurueck():
     t = await texte(teile(), ablage(weitergegeben=False), auftrag("laeuft"))
     assert t.transkript is None
+
+
+async def test_uebersetztes_vorab_waehrend_des_laufs():
+    plan = [abschnitt(1, "Guten Abend.", True), abschnitt(2, "Good evening.", False)]
+    t = await texte(teile(abschnitte=plan), ablage(weitergegeben=False), auftrag("laeuft"))
+    assert t.uebersetzung is None and t.vorab is not None
+    assert (t.vorab.sprache, [(x.start, x.text) for x in t.vorab.segmente]) == ("de", [(1.0, "Guten Abend.")])
+    assert (await texte(teile(abschnitte=plan[1:]), ablage(weitergegeben=False), auftrag("laeuft"))).vorab is None
+    assert (await texte(teile(abschnitte=plan), ablage(weitergegeben=False), auftrag("fehler"))).vorab is None

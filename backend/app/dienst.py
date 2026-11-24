@@ -159,12 +159,15 @@ class Texte(BaseModel):
                                                           "transkribieren ließ (mitgeschickte Segmente kennt der Sender)")
     uebersetzung: TextSpur | None = Field(None, description="Text der neuen Tonspur, an den Zeiten, an denen er dort "
                                                             "gesprochen wird (bei gleicher Sprache der neu gesprochene)")
+    vorab: TextSpur | None = Field(None, description="solange der Auftrag läuft: was schon übersetzt ist, an den Zeiten der "
+                                                     "Aufnahme (zum Mitlesen; endgültig ist erst `uebersetzung`)")
 
 
 async def texte(teile: Teile, a: Ablage, auftrag: Auftrag) -> Texte:
     """Was ein Dienstauftrag an Text hat, zu holen vor `abgeholt` (danach liegt alles im Papierkorb): das Transkript,
     sobald die Transkription es neben die Aufnahme gelegt hat (auch wenn der Auftrag danach scheitert), den Text der
-    neuen Tonspur erst, wenn der Auftrag fertig ist (vorher stehen seine Zeiten nicht fest)."""
+    neuen Tonspur erst, wenn der Auftrag fertig ist (vorher stehen seine Zeiten nicht fest); bis dahin `vorab`, was schon
+    übersetzt ist."""
     kw = teile.zugang()
     ergebnis = auftrag.ergebnis or {}
     transkript = None
@@ -176,14 +179,21 @@ async def texte(teile: Teile, a: Ablage, auftrag: Auftrag) -> Texte:
                                   or ergebnis.get("ausgangssprache") or auftrag.eingabe.get("ausgangssprache") or "",
                                   segmente=[TextSegment(start=x.start, ende=x.ende, text=x.text.strip(), sprecher=x.sprecher)
                                             for x in planen.segmente_aus_transkript(t) if x.text.strip()])
-    uebersetzung = None
+    uebersetzung = vorab = None
+    if auftrag.zustand == "laeuft" and a.plan_id is not None:
+        plan, _ = await teile.plaene.lesen(a.plan_id)
+        fertig = [x for x in plan.abschnitte if x.original is not None and not x.uebersetzung_noetig(plan.sprache)
+                  and x.start is not None and x.ende is not None and x.text.strip()]
+        if fertig:
+            vorab = TextSpur(sprache=plan.sprache, segmente=[
+                TextSegment(start=x.start, ende=x.ende, text=x.text.strip(), sprecher=plan.rolle(x.rolle).name) for x in fertig])
     if auftrag.zustand == "fertig" and a.plan_id is not None:
         plan, _ = await teile.plaene.lesen(a.plan_id)
         lage = {s.nr: s for s in spannen(plan)}
         uebersetzung = TextSpur(sprache=plan.sprache, segmente=[
             TextSegment(start=lage[x.nr].von, ende=lage[x.nr].bis, text=x.text.strip(), sprecher=plan.rolle(x.rolle).name)
             for x in plan.abschnitte if x.nr in lage and x.text.strip()])
-    return Texte(transkript=transkript, uebersetzung=uebersetzung)
+    return Texte(transkript=transkript, uebersetzung=uebersetzung, vorab=vorab)
 
 
 async def ablegen(teile: Teile, app: str, name: str, endung: str, datei, segmente: list[DienstSegment] | None,
